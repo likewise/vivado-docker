@@ -39,7 +39,7 @@ RUN adduser --disabled-password --gecos '' vivado
 USER vivado
 WORKDIR /home/vivado
 #add vivado tools to path
-RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
+RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
 
 #copy in the license file
 RUN mkdir /home/vivado/.Xilinx
