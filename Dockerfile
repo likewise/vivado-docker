@@ -34,6 +34,14 @@ RUN echo "Downloading ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
   tar xzf ${VIVADO_TAR_FILE}.tar.gz && \
   /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt && \
   rm -rf ${VIVADO_TAR_FILE}*
+
+#add vivado tools to path (root)
+RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /root/.profile
+
+#copy in the license file (root)
+RUN mkdir -p /root/.Xilinx
+COPY Xilinx.lic /root/.Xilinx/
+
 #make a Vivado user
 RUN adduser --disabled-password --gecos '' vivado
 USER vivado
@@ -44,3 +52,4 @@ RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vi
 #copy in the license file
 RUN mkdir /home/vivado/.Xilinx
 COPY Xilinx.lic /home/vivado/.Xilinx/
+
