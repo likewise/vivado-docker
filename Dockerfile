@@ -1,15 +1,68 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
-MAINTAINER Colm Ryan <cryan@bbn.com>
+#AS vivado:2020.2
 
-# build with docker build --build-arg VIVADO_TAR_HOST=host:port --build-arg VIVADO_TAR_FILE=Xilinx_Vivado_SDK_2016.3_1011_1 -t vivado .
+MAINTAINER Leon Woestenberg <leon@sidebranch.com>
+
+# Building the Docker image
+#
+# A HTTP(S) host must serve out the Xilinx_Unified_2020.2_1118_1232.tar.gz and petalinux-v2020.2-final-installer.run
+# An easy way is to run a temporary server
+# python3 -m http.server 8000
+#
+# build with
+# docker build --network=host -t vivado .
+#
+# If "Downloading and extracting Xilinx_Unified_2020.2_1118_1232 from http://..." fails, check if the HTTP server
+# is accessible.
+#
+# You can override the ARG default (see below) on the command line, or adapt this Dockerfile.
+# docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
+#
+ARG VIVADO_TAR_HOST="http://localhost:8000"
+ARG VIVADO_TAR_FILE="Xilinx_Unified_2020.2_1118_1232"
+ARG VIVADO_VERSION="2020.2"
+ARG PETALINUX_RUN_FILE="petalinux-v2020.2-final-installer.run"
+
+# Running the Docker image in a Docker container
+#
+# docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
+# -v $PWD:/home/vivado/project -v $HOME/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/:ro -w /home/vivado/project vivado:latest
+#
+# The current directory on the host is mounted as read-write in the container.
+# The license file of the host is mounted read-only. See the --mac-address= flag for docker run.
+
+
+# Set BASH as the default shell
+RUN echo "dash dash/sh boolean false" | debconf-set-selections
+RUN DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true dpkg-reconfigure dash
+
+ENV TZ=Europe/Amsterdam
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# If apt-get install were in a separate RUN instruction, then it would reuse a layer added by apt-get update,
+# which could had been created a long time ago.
+
+# Update the apt-repo and upgrade and re-update while the apt-cache may be invalid
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  nano vim software-properties-common locales apt-utils
+
+# Generate and configure the character set encoding to en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+
+RUN locale-gen --purge en_US.UTF-8
+RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
 
 #install dependences for:
-# * downloading Vivado (wget)
-# * xsim (gcc build-essential to also get make)
-# * MIG tool (libglib2.0-0 libsm6 libxi6 libxrender1 libxrandr2 libfreetype6 libfontconfig)
-# * CI (git)
-RUN apt-get update && apt-get install -y \
+# * downloading Vivado: wget
+# * xsim: build-essential, which contains gcc and make)
+# * MIG tool: libglib2.0-0 libsm6 libxi6 libxrender1 libxrandr2 libfreetype6 libfontconfig
+# * CI git
+#
+# * PetaLinux: expect ... libncurses5-dev 
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
   wget \
   build-essential \
   libglib2.0-0 \
@@ -19,37 +72,109 @@ RUN apt-get update && apt-get install -y \
   libxrandr2 \
   libfreetype6 \
   libfontconfig \
-  git
+  git \
+  \
+  expect gawk net-tools xterm autoconf libtool \
+  texinfo zlib1g-dev gcc-multilib libncurses5-dev \
+  \
+  && ldconfig
 
-# copy in config file
-COPY install_config.txt /
+#RUN DEBIAN_FRONTEND=noninteractive \
+#  && apt-get clean \
+#  && apt-get autoremove \
+#  && rm -rf /var/lib/apt/lists/* \
+#  && ldconfig
 
 # download and run the install
-ARG VIVADO_TAR_HOST
-ARG VIVADO_TAR_FILE
-ARG VIVADO_VERSION
-RUN echo "Downloading ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
-  wget ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar.gz -q && \
-  echo "Extracting Vivado tar file" && \
-  tar xzf ${VIVADO_TAR_FILE}.tar.gz && \
-  /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt && \
+RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
+  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar.gz -q | \
+  tar xzvf -
+
+# copy installation configuration for Vitis
+COPY install_config.txt /
+RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt && \
   rm -rf ${VIVADO_TAR_FILE}*
+
+#RUN Xilinx_Unified_2020.2
 
 #add vivado tools to path (root)
 RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /root/.profile
 
 #copy in the license file (root)
 RUN mkdir -p /root/.Xilinx
-COPY Xilinx.lic /root/.Xilinx/
+# We do not want our license file to be in the image, we mount it during run.
+#COPY Xilinx.lic /root/.Xilinx/
+
+# Uncomplete attempt to get DocNav (32-bit) running, did not work
+#RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 && \
+#apt-get update && \
+#apt-get install -y \
+#lib32stdc++6 \
+#libgtk2.0-0:i386 \
+#libfontconfig1:i386 \
+#libx11-6:i386 \
+#libxext6:i386 \
+#libxrender1:i386 \
+#libsm6:i386 \
+#libqtgui4:i386 \
+#libgl1-mesa-dev \
+#libnss3 \
+#libasound2
 
 #make a Vivado user
 RUN adduser --disabled-password --gecos '' vivado
+
+RUN mkdir /etc/sudoers.d
+RUN echo >/etc/sudoers.d/vivado 'vivado ALL = (ALL) NOPASSWD: SETENV: ALL'
+
+# remaining build steps are run as this user; this is also the default user when the image is run.
 USER vivado
 WORKDIR /home/vivado
-#add vivado tools to path
+
+# copy in the license file
+RUN mkdir -p .Xilinx
+
+COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
+
+#USER root
+#
+# expect is required by petalinux-accept-eula.sh
+# gawk is required by petalinux installer
+# rest is required by PetaLinux
+#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y expect gawk net-tools xterm autoconf libtool libtool \
+#  texinfo zlib1g-dev gcc-multilib libncurses5-dev
+
+USER vivado
+WORKDIR /home/vivado
+
+RUN echo "Downloading and extracting ${PETALINUX_RUN_FILE} from ${VIVADO_TAR_HOST}" && \
+  wget ${VIVADO_TAR_HOST}/${PETALINUX_RUN_FILE} -q
+
+USER root
+RUN chmod +x ${PETALINUX_RUN_FILE}
+
+# This list is taken from 
+RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 && \
+apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+iproute2 gawk python3 python build-essential gcc git make net-tools libncurses5-dev tftpd zlib1g-dev libssl-dev flex bison libselinux1 gnupg \
+wget git-core diffstat chrpath socat xterm autoconf libtool tar unzip texinfo zlib1g-dev gcc-multilib automake zlib1g:i386 screen pax gzip cpio \
+python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3
+
+#COPY plnx-env-setup.sh /tmp/
+#RUN chmod +x /tmp/plnx-env-setup.sh
+#RUN /tmp/plnx-env-setup.sh
+
+USER vivado
+WORKDIR /home/vivado
+
+RUN /home/vivado/petalinux-accept-eula.sh /home/vivado/${PETALINUX_RUN_FILE} /home/vivado/petalinux-2020.2
+RUN rm -v ${PETALINUX_RUN_FILE}
+
+# We do not want our license file to be in the image, we mount it during run.
+#COPY Xilinx.lic .Xilinx/
+# add Vivado tools to path
+RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.profile
 RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
+RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
 
-#copy in the license file
-RUN mkdir /home/vivado/.Xilinx
-COPY Xilinx.lic /home/vivado/.Xilinx/
-
+USER root
