@@ -72,6 +72,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
   libxrandr2 \
   libfreetype6 \
   libfontconfig \
+  libgtk3.0 \
   git \
   \
   expect gawk net-tools xterm autoconf libtool \
@@ -177,4 +178,4 @@ RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.profi
 RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
 RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
 
-USER root
+#USER root
