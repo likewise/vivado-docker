@@ -29,6 +29,13 @@ remote:
 	# Proxy with the :0 DISPLAY
 	socat UNIX-LISTEN:display/socket/X$${CONTAINER_DISPLAY},fork TCP4:localhost:60$${DISPLAY_NUMBER} &
 
+	# if user id inside docker container differs from host id
+	# we need to provide access for this other user
+	# inspired by https://jtreminio.com/blog/running-docker-containers-as-current-host-user/
+	chmod ugo+rwx -R display
+	# not sure why this is ALSO needed
+	setfacl -R -m user:1000:rwx display
+
 	# Launch the container
 	docker run -it --rm \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \
