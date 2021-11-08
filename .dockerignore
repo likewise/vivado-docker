@@ -1,4 +1,10 @@
 Makefile
 README.md
 *.lic
+Xilinx*tar*
+petalinux*run
+*.jou
+*.log
+display
+project
 
