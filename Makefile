@@ -38,6 +38,7 @@ remote:
 
 	# Launch the container
 	docker run -it --rm \
+	-u `id -u`:`id -g` \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${PWD}/display/socket:/tmp/.X11-unix \
