@@ -11,6 +11,7 @@ remote:
 	export CONTAINER_HOSTNAME="vivado-container"
 
 	# Create a directory for the socket
+	rm -rf display
 	mkdir -p display/socket
 	touch display/Xauthority
 
