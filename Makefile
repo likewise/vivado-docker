@@ -48,3 +48,11 @@ remote:
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /home/vivado/project \
 	vivado
+
+#	 sudo chmod o+rw /var/run/docker.sock
+
+#visudo
+# Cmnd alias specification
+#Cmnd_Alias DOCKER_CMD=/usr/bin/docker run *
+#someuser ALL=(root) NOPASSWD: DOCKER_CMD
+
