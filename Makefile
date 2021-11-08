@@ -17,9 +17,11 @@ remote:
 
 	# Get the DISPLAY slot
 	export DISPLAY_NUMBER=$$(echo $$DISPLAY | cut -d. -f1 | cut -d: -f2)
+	echo "DISPLAY_NUMER=$$DISPLAY_NUMBER"
 
 	# Extract current authentication cookie
 	export AUTH_COOKIE=$$(xauth list | grep "^$$(hostname)/unix:$${DISPLAY_NUMBER} " | awk '{print $$3}')
+	echo "AUTH_COOKIE=$$AUTH_COOKIE"
 
 	# Create the new X Authority file
 	xauth -f display/Xauthority add $${CONTAINER_HOSTNAME}/unix:$${CONTAINER_DISPLAY} MIT-MAGIC-COOKIE-1 $${AUTH_COOKIE}
