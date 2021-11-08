@@ -174,8 +174,37 @@ RUN rm -v ${PETALINUX_RUN_FILE}
 # We do not want our license file to be in the image, we mount it during run.
 #COPY Xilinx.lic .Xilinx/
 # add Vivado tools to path
-RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.profile
-RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
-RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
+
+#RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.profile
+#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
+#RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
+
+#RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.basrc
+#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.basrc
+#RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
+
+USER root
+
+RUN apt-get install make gcc g++ python3 python3-dev python3-pip
+
+RUN adduser --disabled-password --gecos '' vivado-docker-1001
+
+RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/profile.d/vivado && \
+echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
+echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
+echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/bash.bashrc && \
+echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc &&\
+echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc && \
+echo "#!/bin/sh" > /usr/local/bin/vivado_gui.sh && \
+echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /usr/local/bin/vivado_gui.sh && \
+echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
+echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
+echo "vivado" >> /usr/local/bin/vivado_gui.sh && \
+chmod +x /usr/local/bin/vivado_gui.sh
+
+USER vivado
+WORKDIR /home/vivado
+
+RUN pip3 install --user cocotb cocotb-bus
 
 #USER root
