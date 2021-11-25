@@ -185,7 +185,7 @@ RUN rm -v ${PETALINUX_RUN_FILE}
 
 USER root
 
-RUN apt-get install make gcc g++ python3 python3-dev python3-pip
+RUN apt-get install -y make gcc g++ python3 python3-dev python3-pip
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1001
 
@@ -201,6 +201,9 @@ echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /usr/local/b
 echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
 echo "vivado" >> /usr/local/bin/vivado_gui.sh && \
 chmod +x /usr/local/bin/vivado_gui.sh
+
+RUN apt-get install -y python3 iverilog gtkwave
+RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie pytest scapy tox pytest-xdist pytest-sugar
 
 USER vivado
 WORKDIR /home/vivado

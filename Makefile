@@ -49,6 +49,13 @@ remote:
 	-w /home/vivado/project \
 	vivado
 
+#	--mac-address="aa:bb:cc:dd:ee:ff" \
+#	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+# 	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+#	--volume="/etc/machine-id:/etc/machine-id" \
+#	-u `id -u`:`id -g` \
+#	--net=host \
+
 #	 sudo chmod o+rw /var/run/docker.sock
 
 #visudo
