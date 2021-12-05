@@ -205,6 +205,11 @@ chmod +x /usr/local/bin/vivado_gui.sh
 RUN apt-get install -y python3 iverilog gtkwave
 RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie pytest scapy tox pytest-xdist pytest-sugar
 
+# Not sure if this is going to break Vivado
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+RUN apt-get install -y dbus-x11
+
 USER vivado
 WORKDIR /home/vivado
 
