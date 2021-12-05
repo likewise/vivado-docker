@@ -18,7 +18,7 @@ remote:
 
 	# Get the DISPLAY slot
 	export DISPLAY_NUMBER=$$(echo $$DISPLAY | cut -d. -f1 | cut -d: -f2)
-	echo "DISPLAY_NUMER=$$DISPLAY_NUMBER"
+	echo "DISPLAY_NUMBER=$$DISPLAY_NUMBER"
 
 	# Extract current authentication cookie
 	export AUTH_COOKIE=$$(xauth list | grep "^$$(hostname)/unix:$${DISPLAY_NUMBER} " | awk '{print $$3}')
@@ -66,4 +66,3 @@ remote:
 # Cmnd alias specification
 #Cmnd_Alias DOCKER_CMD=/usr/bin/docker run *
 #someuser ALL=(root) NOPASSWD: DOCKER_CMD
-
