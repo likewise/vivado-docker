@@ -215,4 +215,8 @@ WORKDIR /home/vivado
 
 RUN pip3 install --user cocotb cocotb-bus
 
+ENV COLORTERM="truecolor"
+ENV TERM="xterm-256color"
+RUN sed -i 's/01;32/01;33/g' /home/vivado/.bashrc
+
 #USER root
