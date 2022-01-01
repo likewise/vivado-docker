@@ -49,10 +49,20 @@ remote:
 	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /home/vivado/project \
+	--device-cgroup-rule 'c 188:* rmw' \
+	--device-cgroup-rule 'c 189:* rmw' \
+	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
+	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
+	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
+	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
+	-v /dev:/dev:rw \
 	vivado
 
 	rm -rf $${X11TMPDIR}
 
+
+#	-v /dev/bus/usb:/dev/bus/usb \
+#	-v /dev/bus/usb/003:/dev/bus/usb/003 \
 #	--mac-address="aa:bb:cc:dd:ee:ff" \
 #	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 # 	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
