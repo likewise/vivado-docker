@@ -209,6 +209,11 @@ RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocot
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 RUN apt-get install -y dbus-x11
+RUN apt-get install -y udev usbutils
+RUN cd /opt/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
+
+#RUN adduser vivado dialout
+RUN usermod -aG dialout vivado
 
 USER vivado
 WORKDIR /home/vivado
