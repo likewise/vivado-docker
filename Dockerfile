@@ -188,6 +188,7 @@ USER root
 RUN apt-get install -y make gcc g++ python3 python3-dev python3-pip
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1001
+RUN adduser --disabled-password --gecos '' vivado-docker-1002
 
 RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/profile.d/vivado && \
 echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
