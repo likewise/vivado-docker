@@ -216,10 +216,39 @@ RUN cd /opt/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/i
 #RUN adduser vivado dialout
 RUN usermod -aG dialout vivado
 
+RUN python3 -m pip install --user -U pip setuptools
+
+# Ibex FuseSoC
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+    autoconf bison build-essential clang-format cmake curl \
+    doxygen flex g++ git golang lcov libelf1 libelf-dev libftdi1-2 \
+    libftdi1-dev libncurses5 libssl-dev libudev-dev libusb-1.0-0 lsb-release \
+    make ninja-build perl pkgconf python3 python3-pip python3-setuptools \
+    python3-wheel srecord tree xsltproc zlib1g-dev xz-utils \
+    srecord
+
+COPY --chown=vivado fusesoc-python-requirements.txt .
+RUN pip3 install -r fusesoc-python-requirements.txt
+#RUN pip3 install Mako fusesoc markupsafe
+
+COPY vivado.xml /home/vivado/.Xilinx/Vivado/2020.2/vivado.xml
+RUN chown -R vivado:vivado /home/vivado/.Xilinx
+
+
+# Digilent (Arty) board files https://reference.digilentinc.com/reference/software/vivado/board-files
+# https://github.com/Digilent/vivado-boards/archive/master.zip
+RUN curl --output /tmp/master.zip -L https://github.com/Digilent/vivado-boards/archive/master.zip?_ga=2.203386514.2020720558.1643112254-1582227075.1643112254 && cd /tmp/ && unzip master.zip && \
+  cp -a vivado-boards-master/new/board_files/* /opt/Xilinx/Vivado/2020.2/data/boards/board_files/
+
 USER vivado
 WORKDIR /home/vivado
 
-RUN pip3 install --user cocotb cocotb-bus
+
+#COPY --chown=vivado fusesoc-python-requirements.txt .
+#RUN pip3 install --user -U -r fusesoc-python-requirements.txt
+#RUN pip3 install --user -U Mako fusesoc
+
+#RUN pip3 install --user cocotb cocotb-bus
 
 ENV COLORTERM="truecolor"
 ENV TERM="xterm-256color"
