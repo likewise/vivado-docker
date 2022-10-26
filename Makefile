@@ -1,9 +1,11 @@
+VER=2022.10
+
 .ONESHELL:
 
 build:
-	docker build --network=host -t vivado:2022.10. .
+	docker build --network=host -t vivado:$(VER) .
 run:
-	docker run -ti --rm -e DISPLAY=$(DISPLAY) -v /tmp/.X11-unix:/tmp/.X11-unix -v $$PWD:/home/vivado/project -v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro -w /home/vivado/project vivado:latest
+	docker run -ti --rm -e DISPLAY=$(DISPLAY) -v /tmp/.X11-unix:/tmp/.X11-unix -v $$PWD:/home/vivado/project -v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro -w /home/vivado/project vivado:$(VER)
 
 remote:
 	# Prepare target env
@@ -56,7 +58,7 @@ remote:
 	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
 	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
 	-v /dev:/dev:rw \
-	vivado
+	vivado:$(VER)
 
 	rm -rf $${X11TMPDIR}
 
