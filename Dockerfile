@@ -1,6 +1,4 @@
-FROM ubuntu:20.04
-
-#AS vivado:2020.2
+FROM ubuntu:22.04
 
 # Building the Docker image
 #
@@ -18,9 +16,10 @@ FROM ubuntu:20.04
 # docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
 #
 ARG VIVADO_TAR_HOST="http://localhost:8000"
-ARG VIVADO_TAR_FILE="Xilinx_Unified_2021.2_1021_0703"
-ARG VIVADO_VERSION="2021.2"
-ARG PETALINUX_RUN_FILE="petalinux-v2021.2-final-installer.run"
+# without .tar.gz suffix
+ARG VIVADO_TAR_FILE="Xilinx_Unified_2022.2_1014_8888"
+ARG VIVADO_VERSION="2022.2"
+ARG PETALINUX_RUN_FILE="petalinux-v2022.2-10141622-installer.run"
 
 # only available during build
 ARG DEBIAN_FRONTEND=noninteractive
@@ -111,7 +110,7 @@ RUN chmod ugo+rwx /opt
 #libasound2
 
 
-#make a Vivado user
+# make a new user called vivado
 RUN adduser --disabled-password --gecos '' vivado
 
 RUN mkdir /etc/sudoers.d
@@ -119,7 +118,6 @@ RUN echo >/etc/sudoers.d/vivado 'vivado ALL = (ALL) NOPASSWD: SETENV: ALL'
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   apt-utils sudo nano
-
 
 # remaining build steps are run as this user; this is also the default user when the image is run.
 USER vivado
@@ -133,23 +131,24 @@ COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
 #RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,XilinxEULA --batch Install --config install_config.txt && \
 #  rm -rf ${VIVADO_TAR_FILE}*
 
-
-
-#RUN Xilinx_Unified_2020.2
-
 #add vivado tools to path (root)
-RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
+#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
 
 #copy in the license file (root)
 #RUN mkdir -p /root/.Xilinx
 RUN mkdir -p /home/vivado/.Xilinx
-
 
 # download and run the install
 RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
   wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar.gz -q | \
   tar xzvf -
 
+# If the following fails for a newer version of Xilinx, because of new configuration
+# options, look for the latest image and manually create a new install_config.txt.
+# docker image ls -a
+# docker run -ti <latest-image> /bin/bash
+# And then inside the container run:
+# ./xsetup -b ConfigGen
 
 # copy installation configuration for Vitis
 COPY install_config.txt /
@@ -163,7 +162,7 @@ WORKDIR /root
 # Install Xilinx cable drivers
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   udev usbutils
-RUN cd /opt/Xilinx/Vivado/2021.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
+RUN cd /opt/Xilinx/Vivado/2022.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   dbus-x11 
@@ -181,5 +180,5 @@ RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
   echo "export PATH=$PATH:PipelineC/src" >> /home/vivado/.bashrc
 
 #RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
-RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzv
+RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
 RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
