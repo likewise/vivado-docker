@@ -1,4 +1,4 @@
-VER=2022.10
+VER=3.0.0
 
 .ONESHELL:
 
@@ -15,6 +15,9 @@ guard-%:
 run: guard-DISPLAY guard-USER
 	docker run -ti --rm \
 	--name vivado-$(USER) \
+	-e HOST_USER_NAME=`id -nu $${USER}` \
+	-e HOST_USER_ID=`id -u $${USER}` \
+	-e HOST_GROUP_ID=`id -g $${USER}` \
 	-e DISPLAY=$(DISPLAY) \
 	--network="host" \
 	--device=/dev/bus \
@@ -57,10 +60,15 @@ remote: guard-DISPLAY guard-USER
 	setfacl -R -m user:1000:rwx $${X11TMPDIR}
 
 #	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+#	-u `id -u`:`id -g` \
+# replaced by -e HOST_USER_ID what is picked up by entrypoint.sh to
+# create a matching user in the container, on the fly, and become that user
 
 	# Launch the container
 	docker run -it --rm \
-	-u `id -u`:`id -g` \
+	-e HOST_USER_NAME=`id -nu $${USER}` \
+	-e HOST_USER_ID=`id -u $${USER}` \
+	-e HOST_GROUP_ID=`id -g $${USER}` \
 	--mac-address="00:30:48:29:6b:04" \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \
 	-e XAUTHORITY=/tmp/.Xauthority \

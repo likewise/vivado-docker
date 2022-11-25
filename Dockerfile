@@ -182,3 +182,15 @@ RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
 #RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
 RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
 RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
+
+USER root
+WORKDIR /root
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  x11-apps gosu
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+CMD ["/bin/bash", "-l"]
