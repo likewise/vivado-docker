@@ -3,11 +3,28 @@ VER=2022.10
 .ONESHELL:
 
 build:
-	docker build --network=host -t vivado:$(VER) .
-run:
-	docker run -ti --rm -e DISPLAY=$(DISPLAY) -v /tmp/.X11-unix:/tmp/.X11-unix -v $$PWD:/home/vivado/project -v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro -w /home/vivado/project vivado:$(VER)
+	docker build --build-arg=TERM="linux" --network=host -t vivado:$(VER) .
 
-remote:
+# assures variable % is set (used for USER and DISPLAY)
+guard-%:
+	@if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
+
+run: guard-DISPLAY guard-USER
+	docker run -ti --rm \
+	--name vivado-$(USER) \
+	-e DISPLAY=$(DISPLAY) \
+	--network="host" \
+	--device=/dev/bus \
+	-v /tmp/.X11-unix:/tmp/.X11-unix \
+	-v $$PWD:/home/vivado/project \
+	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-w /home/vivado/project \
+	vivado:$(VER)
+
+remote: guard-DISPLAY guard-USER
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="vivado-container"
@@ -39,6 +56,8 @@ remote:
 	# not sure why this is ALSO needed
 	setfacl -R -m user:1000:rwx $${X11TMPDIR}
 
+#	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+
 	# Launch the container
 	docker run -it --rm \
 	-u `id -u`:`id -g` \
@@ -48,7 +67,6 @@ remote:
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
 	-v $$PWD:/home/vivado/project \
-	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /home/vivado/project \
 	--device-cgroup-rule 'c 188:* rmw' \
