@@ -313,13 +313,16 @@ ENV PATH="${PATH}:/home/vivado/x-tools/riscv32-unknown-elf/bin:/opt/bin"
 RUN git clone --branch=1.7.9 --depth=1 https://github.com/picolibc/picolibc.git && \
 cd picolibc/hello-world && sed -i 's@riscv64@riscv32@' Makefile && make hello-world-riscv.elf && ./run-riscv 2>&1 | grep -e 'hello, world'
 
+RUN chmod go+rx /home/vivado 
 
 # Entrypoint
-USER root
-WORKDIR /root
+#USER root
+#WORKDIR /root
+
+COPY create-container-user.sh /usr/local/bin/create-container-user.sh
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+#RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 CMD ["/bin/bash", "-l"]

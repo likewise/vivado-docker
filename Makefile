@@ -22,9 +22,9 @@ run: guard-DISPLAY guard-USER
 	--network="host" \
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
-	-v $$PWD:/home/vivado/project \
+	-v $$PWD:/project \
 	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
-	-w /home/vivado/project \
+	-w /project \
 	vivado:$(VER)
 
 remote: guard-DISPLAY guard-USER
@@ -66,6 +66,7 @@ remote: guard-DISPLAY guard-USER
 
 	# Launch the container
 	docker run -it --rm \
+	--name vivado-$(USER) \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
@@ -74,9 +75,9 @@ remote: guard-DISPLAY guard-USER
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
-	-v $$PWD:/home/vivado/project \
+	-v $$PWD:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
-	-w /home/vivado/project \
+	-w /project-on-host \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
 	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
