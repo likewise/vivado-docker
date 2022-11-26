@@ -177,20 +177,151 @@ WORKDIR /home/vivado
 
 # Install 'pipelinec' executable
 RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
-  echo "export PATH=$PATH:PipelineC/src" >> /home/vivado/.bashrc
+  echo "export PATH=$PATH:$PWD/PipelineC/src" >> /home/vivado/.bashrc
 
 #RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
 RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
 RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
 
+
+# VexRiscv
 USER root
 WORKDIR /root
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-  x11-apps gosu
+  software-properties-common \
+  scala build-essential git make autoconf g++ flex bison \
+  autoconf \
+  x11-apps gosu \
+  curl
+
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list
+RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  sbt
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  libftdi1 libftdi1-dev libusb-1.0.0-dev make libtool pkg-config \ 
+  libz-dev gdb \
+  locales autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
+  pkg-config libtool libyaml-dev libftdi-dev libusb-1.0.0
+
+RUN curl -sL "https://nav.dl.sourceforge.net/project/openocd/openocd/0.12.0-rc1/openocd-0.12.0-rc1.tar.bz2" | tar xj
+RUN cd openocd-0.12.0-rc1 && ./configure --enable-ftdi && make install -j8
+
+RUN git clone https://github.com/SpinalHDL/openocd_riscv && cd openocd_riscv && \
+./bootstrap && ./configure --enable-xlnx-pcie-xvc --prefix=/opt/openocd-vexriscv && make -j16 install && cd ..
+
+# killall netstat lsusb. default-jdk to build simulation support for verilator (jni.h was missing)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  psmisc net-tools usbutils default-jdk-headless \
+  openjdk-11-jdk \
+  srecord \
+  python3-setuptools libevent-dev libjson-c-dev verilator # Litex
+
+# download vexriscv and instantiate to download the dependencies
+# the SBT cache at ~/.ivy2 will be populated
+RUN git clone https://github.com/SpinalHDL/VexRiscv.git vexriscv && \
+cd vexriscv && \
+sbt "runMain vexriscv.demo.VexRiscvAxi4WithIntegratedJtag" && \
+cd ~/ && rm -rf vexriscv
+
+# Yosys, netlistsvg (depends on npm) to generate RTL netlist images
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  npm yosys
+RUN npm install -g netlistsvg
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  gtkwave
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  python3 python3-pip iverilog gtkwave
+RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie pytest scapy tox pytest-xdist pytest-sugar
+
+RUN cd /opt && ln -snf riscv64-unknown-elf-gcc-20171231-x86_64-linux-centos6 riscv
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  bsdmainutils telnet \
+  inotify-tools gconf2 # gtkwave refresh attempt
+
+# Symbiyosys symbiyosys-build
+###RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+###  build-essential clang bison flex libreadline-dev \
+###  gawk tcl-dev libffi-dev git mercurial graphviz   \
+###  xdot pkg-config python python3 libftdi-dev gperf \
+###  libboost-program-options-dev autoconf libgmp-dev \
+###  cmake python-dev python3-dev
+
+# https://github.com/five-embeddev/riscv-scratchpad/blob/master/cmake/cmake/riscv.cmake
+# https://keithp.com/picolibc/
+# https://crosstool-ng.github.io/docs/build/
+
+# Install dependencies for:
+# crosstool-ng
+# picolibc
+# qemu
+# (dependencies per line)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+unzip help2man libtool-bin libncurses5-dev \
+python3 meson \
+libglib2.0 libpixman-1-dev device-tree-compiler
+# device-tree-compiler is not a dependency but can be used
+# to modify virtual machines in qemu using a modified dtb
+
+# build and install qemu to /opt
+RUN git clone https://github.com/qemu/qemu.git && cd qemu && ./configure --target-list=riscv32-softmmu --prefix=/opt && make -j8 install && cd .. && rm -rf qemu
+
+# build and install ct-ng to /opt
+RUN (curl http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.25.0.tar.xz | tar xJ) && \
+cd crosstool-ng-1.25.0 && ./configure --prefix=/opt && make -j8 install && cd .. && rm -rf crosstool-ng-1.25.0
+
+# copy ct-ng configuration to build a cross toolchain for riscv, with picolibc companion library enabled
+RUN ls -al /opt/share/crosstool-ng/samples/ | grep riscv
+
+# add crosstool configuration for riscv with newlib and picolibc, this contains the install path also
+# wow, the ADD/COPY command syntax is really horrible if you want to copy directories recursively...#
+ADD riscv32-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc
+
+# switch to picolib 1.7.9
+RUN sed -ri 's@^CT_PICOLIBC_DEVEL_BRANCH=.*@CT_PICOLIBC_DEVEL_BRANCH="1.7.9"@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config && \
+grep -e 'CT_PICOLIBC_DEVEL_BRANCH="1.7.9"' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+# enable GCC test suite
+RUN sed -ri 's@^(# CT_TEST_SUITE_GCC is not set|CT_TEST_SUITE_GCC=.*)@CT_TEST_SUITE_GCC=y@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+
+#ADD riscv64-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv64-unknown-elf-picolibc
+
+# verify that the configuration is in place
+RUN head /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+
+# switch to user to build the cross toolchain
+USER vivado
+WORKDIR /home/vivado
+
+# configure crosstool-ng to build a riscv32 picolibc toolchain and fetch sources
+RUN mkdir crosstool-riscv32 && cd crosstool-riscv32 && /opt/bin/ct-ng riscv32-unknown-elf-picolibc && /opt/bin/ct-ng source \
+&& /opt/bin/ct-ng build
+
+#RUN echo 'export PATH=$PATH:/home/vexriscv/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
+RUN echo 'export PATH=$PATH:/home/vivado/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
+
+# make cross toolchain and qemu available during container build
+ENV PATH="${PATH}:/home/vivado/x-tools/riscv32-unknown-elf/bin:/opt/bin"
+
+# build the hello world example, run it semihosted in qemu and verify it runs correctly
+RUN git clone --branch=1.7.9 --depth=1 https://github.com/picolibc/picolibc.git && \
+cd picolibc/hello-world && sed -i 's@riscv64@riscv32@' Makefile && make hello-world-riscv.elf && ./run-riscv 2>&1 | grep -e 'hello, world'
+
+
+# Entrypoint
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+USER vivado
+WORKDIR /home/vivado
+
 
 CMD ["/bin/bash", "-l"]
