@@ -3,6 +3,8 @@
 # Create user on the fly that matches the user starting the container
 # on the host. Then switch to that user.
 
+# Based on https://github.com/phwl/docker-vivado/blob/master/2021.2/Dockerfile
+
 echo "Entering entrypoint.sh"
 
 UART_GROUP_ID=${UART_GROUP_ID:-20}
@@ -37,7 +39,7 @@ if [[ -n "$HOST_USER_ID" ]]; then
     usermod -aG "$UART_GROUP" "$NEW_USER"
     chown $NEW_USER $(tty)
     echo 'source /opt/Xilinx/Vivado/2022.2/settings64.sh' > /home/$NEW_USER/.bash_profile
-    echo 'export PATH=/home/$NEW_USER/.local/bin:$PATH:/opt/bin' >> /home/$NEW_USER/.bashrc
+    echo 'export PATH=$PATH:/home/vivado/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
     # does not work (anymore in 2022.2?)
     #echo 'alias vivado="vivado -stack 4000"' >> /home/$NEW_USER/.bash_profile
     chown $NEW_USER:$NEW_USER -R /home/$NEW_USER/

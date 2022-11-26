@@ -315,13 +315,11 @@ cd picolibc/hello-world && sed -i 's@riscv64@riscv32@' Makefile && make hello-wo
 
 
 # Entrypoint
+USER root
+WORKDIR /root
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-USER vivado
-WORKDIR /home/vivado
-
 
 CMD ["/bin/bash", "-l"]
