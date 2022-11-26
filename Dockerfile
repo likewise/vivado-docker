@@ -319,6 +319,15 @@ RUN chmod go+rx /home/vivado
 #USER root
 #WORKDIR /root
 
+# Alveo U50 board files
+RUN wget ${VIVADO_TAR_HOST}/au50_boardfiles_v1_3_20211104.zip && \
+cd /opt/Xilinx/Vivado/2022.2/data/xhub/boards/XilinxBoardStore/boards/Xilinx/ && \
+unzip /home/vivado/au50_boardfiles_v1_3_20211104.zip && \
+chmod ugo+rx -R . && \
+cd && rm au50_boardfiles_v1_3_20211104.zip
+
+
+
 COPY create-container-user.sh /usr/local/bin/create-container-user.sh
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
