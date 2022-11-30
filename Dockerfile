@@ -326,12 +326,24 @@ unzip /home/vivado/au50_boardfiles_v1_3_20211104.zip && \
 chmod ugo+rx -R . && \
 cd && rm au50_boardfiles_v1_3_20211104.zip
 
-
-
 COPY create-container-user.sh /usr/local/bin/create-container-user.sh
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-#RUN chmod +x /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+USER root
+WORKDIR /root
 
-CMD ["/bin/bash", "-l"]
+RUN adduser --disabled-password --gecos '' vivado-docker-1001
+RUN adduser --disabled-password --gecos '' vivado-docker-1002
+RUN adduser --disabled-password --gecos '' vivado-docker-1003
+
+# GHDL
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+build-essential libboost-dev git gnat
+RUN git clone https://github.com/ghdl/ghdl.git && \
+cd ghdl && mkdir build && cd build && ../configure && make -j8 && make install
+
+USER vivado
+WORKDIR /home/vivado
+
+#COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+#ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+#CMD ["/bin/bash", "-l"]
