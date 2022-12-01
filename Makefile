@@ -1,4 +1,4 @@
-VER=2022.10
+VER=2.0.0
 
 .ONESHELL:
 
