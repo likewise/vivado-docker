@@ -179,6 +179,8 @@ WORKDIR /home/vivado
 RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
   echo "export PATH=$PATH:$PWD/PipelineC/src" >> /home/vivado/.bashrc
 
+# @TODO Document if/how we need OSS CAD Suite.
+#
 #RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
 RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
 RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
@@ -219,7 +221,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
   psmisc net-tools usbutils default-jdk-headless \
   openjdk-11-jdk \
   srecord \
-  python3-setuptools libevent-dev libjson-c-dev verilator # Litex
+  python3-setuptools libevent-dev libjson-c-dev
+# verilator # Litex
 
 # download vexriscv and instantiate to download the dependencies
 # the SBT cache at ~/.ivy2 will be populated
@@ -267,11 +270,13 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 unzip help2man libtool-bin libncurses5-dev \
 python3 meson \
 libglib2.0 libpixman-1-dev device-tree-compiler
-# device-tree-compiler is not a dependency but can be used
+# device-tree-compiler is not a hard dependency but can be used
 # to modify virtual machines in qemu using a modified dtb
 
 # build and install qemu to /opt
-RUN git clone https://github.com/qemu/qemu.git && cd qemu && ./configure --target-list=riscv32-softmmu --prefix=/opt && make -j8 install && cd .. && rm -rf qemu
+RUN git clone https://github.com/qemu/qemu.git && cd qemu && \
+./configure --target-list=riscv32-softmmu --prefix=/opt && \
+make -j8 install && cd .. && rm -rf qemu
 
 # build and install ct-ng to /opt
 RUN (curl http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.25.0.tar.xz | tar xJ) && \
@@ -335,11 +340,27 @@ RUN adduser --disabled-password --gecos '' vivado-docker-1001
 RUN adduser --disabled-password --gecos '' vivado-docker-1002
 RUN adduser --disabled-password --gecos '' vivado-docker-1003
 
+# Verilator 4.100
+RUN git clone http://git.veripool.org/git/verilator && cd verilator && git checkout v4.100 && \
+  autoconf && ./configure && make -j8 && make install
+
 # GHDL
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-build-essential libboost-dev git gnat
+build-essential libboost-dev git gnat \
+# for GHDL LLVM backend
+clang llvm
+
+# GHDL LLVM backend with backtrace support via libbacktrace from GCC
+RUN git clone --single-branch --branch master --depth=1 https://github.com/gcc-mirror/gcc.git && \
+cd gcc/libbacktrace && ./configure && make -j16 && cp -a .libs/libbacktrace.a ../..
+
+# GHDL LLVM backend with backtrace support via libbacktrace from GCC
 RUN git clone https://github.com/ghdl/ghdl.git && \
-cd ghdl && mkdir build && cd build && ../configure && make -j8 && make install
+cd ghdl && mkdir build && cd build && ../configure --with-llvm-config --prefix=/usr/local --with-backtrace-lib=../../libbacktrace.a && make -j8 && make install
+
+# Something drags in verilator as a dependency, but an older version (v4.038) than the one we 
+# built above (which is in /usr/local). Remove the one in /usr/
+RUN apt-get remove verilator
 
 USER vivado
 WORKDIR /home/vivado
