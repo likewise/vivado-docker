@@ -381,8 +381,14 @@ wireguard-tools
 #echo -en "[Peer]\nPublicKey = X6NJW+IznvItD3B5TseUasRPjPzF0PkM5+GaLIjdBG4=\nAllowedIPs = 10.8.0.0/24\nEndpoint = 192.168.255.2:51820\n" >> /etc/wireguard/wg0.conf
 ## matches the hard-coded private key inside wg_lwip.
 
-COPY wireguard/wg0.conf /etc/wireguard/wg0.conf
-RUN chmod go= /etc/wireguard/wg0.conf
+# we might not copy/create this directory with COPY, but need it later
+RUN mkdir -p /etc/wireguard
+#COPY wireguard/wg0.conf /etc/wireguard/wg0.conf
+
+# This will copy the folder contents, even if empty.
+COPY wireguard/. /etc/wireguard/
+# If a wg0.conf was provided, protect it.
+RUN if [ -f /etc/wireguard/wg0.conf ]; then chmod go= /etc/wireguard/wg0.conf; fi
 
 # Workaround for Vivado bugging out with realloc(): invalid old size
 # https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
