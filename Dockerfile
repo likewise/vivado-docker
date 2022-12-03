@@ -362,6 +362,39 @@ cd ghdl && mkdir build && cd build && ../configure --with-llvm-config --prefix=/
 # built above (which is in /usr/local). Remove the one in /usr/
 RUN apt-get remove verilator
 
+USER root
+WORKDIR /
+
+# to create TAP0 for testing purposes (CocoTB)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+iproute2 uml-utilities iputils-ping netcat \
+# to create Wireguard packets from within container
+wireguard-tools
+
+# we used this once, then we stored the private key here -- this is the private key of the container guest
+#RUN cd /etc/wireguard/ && wg genkey > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+
+#RUN cd /etc/wireguard/ && echo "MIuE1NHyNFf++dzYbFkn3pn9ouRVUtSHShYL791NcEg=" > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+#cat /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key && echo -en "[Interface]\nPrivateKey = " > /etc/wireguard/wg0.conf && \
+#chmod go= /etc/wireguard/wg0.conf && \
+#cat private.key >> /etc/wireguard/wg0.conf && echo -en "Address = 10.8.0.1/24\n\n" >> /etc/wireguard/wg0.conf && \
+#echo -en "[Peer]\nPublicKey = X6NJW+IznvItD3B5TseUasRPjPzF0PkM5+GaLIjdBG4=\nAllowedIPs = 10.8.0.0/24\nEndpoint = 192.168.255.2:51820\n" >> /etc/wireguard/wg0.conf
+## matches the hard-coded private key inside wg_lwip.
+
+COPY wireguard/wg0.conf /etc/wireguard/wg0.conf
+RUN chmod go= /etc/wireguard/wg0.conf
+
+# Workaround for Vivado bugging out with realloc(): invalid old size
+# https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
+# Note that the same workaround is needed for Quartus 
+# https://community.intel.com/t5/Intel-FPGA-Software-Installation/Running-Quartus-Prime-Standard-on-WSL-crashes-in-libudev-so/m-p/1189032
+#LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1
+# https://support.xilinx.com/s/article/000034450
+#RUN echo "export LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1" >>/opt/Xilinx/Vivado/2022.2/.settings64-Vivado.sh
+
+RUN echo "Setting LD_PRELOAD to work around issue https://support.xilinx.com/s/article/000034450"
+RUN echo "alias vivado='LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 vivado'" >>/opt/Xilinx/Vivado/2022.2/.settings64-Vivado.sh
+
 USER vivado
 WORKDIR /home/vivado
 
