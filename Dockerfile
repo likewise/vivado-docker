@@ -1,8 +1,4 @@
-FROM ubuntu:18.04
-
-#AS vivado:2020.2
-
-MAINTAINER Leon Woestenberg <leon@sidebranch.com>
+FROM ubuntu:22.04
 
 # Building the Docker image
 #
@@ -13,16 +9,21 @@ MAINTAINER Leon Woestenberg <leon@sidebranch.com>
 # build with
 # docker build --network=host -t vivado .
 #
-# If "Downloading and extracting Xilinx_Unified_2020.2_1118_1232 from http://..." fails, check if the HTTP server
+# If "Downloading and extracting Xilinx_Unified_2021.2_1021_0703 from http://..." fails, check if the HTTP server
 # is accessible.
 #
 # You can override the ARG default (see below) on the command line, or adapt this Dockerfile.
 # docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
 #
 ARG VIVADO_TAR_HOST="http://localhost:8000"
-ARG VIVADO_TAR_FILE="Xilinx_Unified_2020.2_1118_1232"
-ARG VIVADO_VERSION="2020.2"
-ARG PETALINUX_RUN_FILE="petalinux-v2020.2-final-installer.run"
+# without .tar.gz suffix
+ARG VIVADO_TAR_FILE="Xilinx_Unified_2022.2_1014_8888"
+ARG VIVADO_VERSION="2022.2"
+ARG PETALINUX_RUN_FILE="petalinux-v2022.2-10141622-installer.run"
+
+# only available during build
+ARG DEBIAN_FRONTEND=noninteractive
+ARG DEBCONF_NONINTERACTIVE_SEEN=true
 
 # Running the Docker image in a Docker container
 #
@@ -52,7 +53,7 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-RUN locale-gen --purge en_US.UTF-8
+RUN  locale-gen --purge en_US.UTF-8
 RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
 
 #install dependences for:
@@ -73,6 +74,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
   libfreetype6 \
   libfontconfig \
   libgtk3.0 \
+  libtinfo5 \
   git \
   \
   expect gawk net-tools xterm autoconf libtool \
@@ -86,23 +88,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
 #  && rm -rf /var/lib/apt/lists/* \
 #  && ldconfig
 
-# download and run the install
-RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
-  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar.gz -q | \
-  tar xzvf -
+RUN chmod ugo+rwx /opt
 
-# copy installation configuration for Vitis
-COPY install_config.txt /
-RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt && \
-  rm -rf ${VIVADO_TAR_FILE}*
-
-#RUN Xilinx_Unified_2020.2
-
-#add vivado tools to path (root)
-RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /root/.profile
-
-#copy in the license file (root)
-RUN mkdir -p /root/.Xilinx
 # We do not want our license file to be in the image, we mount it during run.
 #COPY Xilinx.lic /root/.Xilinx/
 
@@ -122,11 +109,15 @@ RUN mkdir -p /root/.Xilinx
 #libnss3 \
 #libasound2
 
-#make a Vivado user
+
+# make a new user called vivado
 RUN adduser --disabled-password --gecos '' vivado
 
 RUN mkdir /etc/sudoers.d
 RUN echo >/etc/sudoers.d/vivado 'vivado ALL = (ALL) NOPASSWD: SETENV: ALL'
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  apt-utils sudo nano
 
 # remaining build steps are run as this user; this is also the default user when the image is run.
 USER vivado
@@ -137,125 +128,282 @@ RUN mkdir -p .Xilinx
 
 COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
 
-#USER root
+#RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,XilinxEULA --batch Install --config install_config.txt && \
+#  rm -rf ${VIVADO_TAR_FILE}*
+
+#add vivado tools to path (root)
+#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
+
+#copy in the license file (root)
+#RUN mkdir -p /root/.Xilinx
+RUN mkdir -p /home/vivado/.Xilinx
+
+# download and run the install
+RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
+  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar.gz -q | \
+  tar xzvf -
+
+# If the following fails for a newer version of Xilinx, because of new configuration
+# options, look for the latest image and manually create a new install_config.txt.
+# docker image ls -a
+# docker run -ti <latest-image> /bin/bash
+# And then inside the container run:
+# ./xsetup -b ConfigGen
+
+# copy installation configuration for Vitis
+COPY install_config.txt /
+RUN cp -a /install_config.txt .
+RUN ${VIVADO_TAR_FILE}/xsetup --agree XilinxEULA,3rdPartyEULA  --batch Install --config install_config.txt && \
+  rm -rf ${VIVADO_TAR_FILE}*
+
+USER root
+WORKDIR /root
+
+# Install Xilinx cable drivers
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  udev usbutils
+RUN cd /opt/Xilinx/Vivado/2022.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  dbus-x11 
+
+#RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+#  libnotify4 libnss3 libxss1 xdg-utils libsecret-1-0
+#RUN wget https://github.com/jgraph/drawio-desktop/releases/download/v20.3.0/drawio-amd64-20.3.0.deb && \
+#  dpkg -i drawio-amd64-20.3.0.deb && rm drawio-amd64-20.3.0.deb
+
+USER vivado
+WORKDIR /home/vivado
+
+# Install 'pipelinec' executable
+RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
+  echo "export PATH=$PATH:$PWD/PipelineC/src" >> /home/vivado/.bashrc
+
+# @TODO Document if/how we need OSS CAD Suite.
 #
-# expect is required by petalinux-accept-eula.sh
-# gawk is required by petalinux installer
-# rest is required by PetaLinux
-#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y expect gawk net-tools xterm autoconf libtool libtool \
-#  texinfo zlib1g-dev gcc-multilib libncurses5-dev
+#RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
+RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
+RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
 
+
+# VexRiscv
+USER root
+WORKDIR /root
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  software-properties-common \
+  scala build-essential git make autoconf g++ flex bison \
+  autoconf \
+  x11-apps gosu \
+  curl
+
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list
+RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  sbt
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  libftdi1 libftdi1-dev libusb-1.0.0-dev make libtool pkg-config \ 
+  libz-dev gdb \
+  locales autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
+  pkg-config libtool libyaml-dev libftdi-dev libusb-1.0.0
+
+RUN curl -sL "https://nav.dl.sourceforge.net/project/openocd/openocd/0.12.0-rc1/openocd-0.12.0-rc1.tar.bz2" | tar xj
+RUN cd openocd-0.12.0-rc1 && ./configure --enable-ftdi && make install -j8
+
+RUN git clone https://github.com/SpinalHDL/openocd_riscv && cd openocd_riscv && \
+./bootstrap && ./configure --enable-xlnx-pcie-xvc --prefix=/opt/openocd-vexriscv && make -j16 install && cd ..
+
+# killall netstat lsusb. default-jdk to build simulation support for verilator (jni.h was missing)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  psmisc net-tools usbutils default-jdk-headless \
+  openjdk-11-jdk \
+  srecord \
+  python3-setuptools libevent-dev libjson-c-dev
+# verilator # Litex
+
+# download vexriscv and instantiate to download the dependencies
+# the SBT cache at ~/.ivy2 will be populated
+RUN git clone https://github.com/SpinalHDL/VexRiscv.git vexriscv && \
+cd vexriscv && \
+sbt "runMain vexriscv.demo.VexRiscvAxi4WithIntegratedJtag" && \
+cd ~/ && rm -rf vexriscv
+
+# Yosys, netlistsvg (depends on npm) to generate RTL netlist images
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  npm yosys
+RUN npm install -g netlistsvg
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  gtkwave
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  python3 python3-pip iverilog gtkwave
+RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie pytest scapy tox pytest-xdist pytest-sugar
+
+RUN cd /opt && ln -snf riscv64-unknown-elf-gcc-20171231-x86_64-linux-centos6 riscv
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+  bsdmainutils telnet \
+  inotify-tools gconf2 # gtkwave refresh attempt
+
+# Symbiyosys symbiyosys-build
+###RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+###  build-essential clang bison flex libreadline-dev \
+###  gawk tcl-dev libffi-dev git mercurial graphviz   \
+###  xdot pkg-config python python3 libftdi-dev gperf \
+###  libboost-program-options-dev autoconf libgmp-dev \
+###  cmake python-dev python3-dev
+
+# https://github.com/five-embeddev/riscv-scratchpad/blob/master/cmake/cmake/riscv.cmake
+# https://keithp.com/picolibc/
+# https://crosstool-ng.github.io/docs/build/
+
+# Install dependencies for:
+# crosstool-ng
+# picolibc
+# qemu
+# (dependencies per line)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+unzip help2man libtool-bin libncurses5-dev \
+python3 meson \
+libglib2.0 libpixman-1-dev device-tree-compiler
+# device-tree-compiler is not a hard dependency but can be used
+# to modify virtual machines in qemu using a modified dtb
+
+# build and install qemu to /opt
+RUN git clone https://github.com/qemu/qemu.git && cd qemu && \
+./configure --target-list=riscv32-softmmu --prefix=/opt && \
+make -j8 install && cd .. && rm -rf qemu
+
+# build and install ct-ng to /opt
+RUN (curl http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.25.0.tar.xz | tar xJ) && \
+cd crosstool-ng-1.25.0 && ./configure --prefix=/opt && make -j8 install && cd .. && rm -rf crosstool-ng-1.25.0
+
+# copy ct-ng configuration to build a cross toolchain for riscv, with picolibc companion library enabled
+RUN ls -al /opt/share/crosstool-ng/samples/ | grep riscv
+
+# add crosstool configuration for riscv with newlib and picolibc, this contains the install path also
+# wow, the ADD/COPY command syntax is really horrible if you want to copy directories recursively...#
+ADD riscv32-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc
+
+# switch to picolib 1.7.9
+RUN sed -ri 's@^CT_PICOLIBC_DEVEL_BRANCH=.*@CT_PICOLIBC_DEVEL_BRANCH="1.7.9"@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config && \
+grep -e 'CT_PICOLIBC_DEVEL_BRANCH="1.7.9"' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+# enable GCC test suite
+RUN sed -ri 's@^(# CT_TEST_SUITE_GCC is not set|CT_TEST_SUITE_GCC=.*)@CT_TEST_SUITE_GCC=y@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+
+#ADD riscv64-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv64-unknown-elf-picolibc
+
+# verify that the configuration is in place
+RUN head /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+
+# switch to user to build the cross toolchain
 USER vivado
 WORKDIR /home/vivado
 
-RUN echo "Downloading and extracting ${PETALINUX_RUN_FILE} from ${VIVADO_TAR_HOST}" && \
-  wget ${VIVADO_TAR_HOST}/${PETALINUX_RUN_FILE} -q
+# configure crosstool-ng to build a riscv32 picolibc toolchain and fetch sources
+RUN mkdir crosstool-riscv32 && cd crosstool-riscv32 && /opt/bin/ct-ng riscv32-unknown-elf-picolibc && /opt/bin/ct-ng source \
+&& /opt/bin/ct-ng build
+
+#RUN echo 'export PATH=$PATH:/home/vexriscv/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
+RUN echo 'export PATH=$PATH:/home/vivado/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
+
+# make cross toolchain and qemu available during container build
+ENV PATH="${PATH}:/home/vivado/x-tools/riscv32-unknown-elf/bin:/opt/bin"
+
+# build the hello world example, run it semihosted in qemu and verify it runs correctly
+RUN git clone --branch=1.7.9 --depth=1 https://github.com/picolibc/picolibc.git && \
+cd picolibc/hello-world && sed -i 's@riscv64@riscv32@' Makefile && make hello-world-riscv.elf && ./run-riscv 2>&1 | grep -e 'hello, world'
+
+RUN chmod go+rx /home/vivado 
+
+# Entrypoint
+#USER root
+#WORKDIR /root
+
+# Alveo U50 board files
+RUN wget ${VIVADO_TAR_HOST}/au50_boardfiles_v1_3_20211104.zip && \
+cd /opt/Xilinx/Vivado/2022.2/data/xhub/boards/XilinxBoardStore/boards/Xilinx/ && \
+unzip /home/vivado/au50_boardfiles_v1_3_20211104.zip && \
+chmod ugo+rx -R . && \
+cd && rm au50_boardfiles_v1_3_20211104.zip
+
+COPY create-container-user.sh /usr/local/bin/create-container-user.sh
 
 USER root
-RUN chmod +x ${PETALINUX_RUN_FILE}
-
-# This list is taken from 
-RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 && \
-apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-iproute2 gawk python3 python build-essential gcc git make net-tools libncurses5-dev tftpd zlib1g-dev libssl-dev flex bison libselinux1 gnupg \
-wget git-core diffstat chrpath socat xterm autoconf libtool tar unzip texinfo zlib1g-dev gcc-multilib automake zlib1g:i386 screen pax gzip cpio \
-python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3
-
-#COPY plnx-env-setup.sh /tmp/
-#RUN chmod +x /tmp/plnx-env-setup.sh
-#RUN /tmp/plnx-env-setup.sh
-
-USER vivado
-WORKDIR /home/vivado
-
-RUN /home/vivado/petalinux-accept-eula.sh /home/vivado/${PETALINUX_RUN_FILE} /home/vivado/petalinux-2020.2
-RUN rm -v ${PETALINUX_RUN_FILE}
-
-# We do not want our license file to be in the image, we mount it during run.
-#COPY Xilinx.lic .Xilinx/
-# add Vivado tools to path
-
-#RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.profile
-#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
-#RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.profile
-
-#RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /home/vivado/.basrc
-#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.basrc
-#RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
-
-USER root
-
-RUN apt-get install -y make gcc g++ python3 python3-dev python3-pip
+WORKDIR /root
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1001
 RUN adduser --disabled-password --gecos '' vivado-docker-1002
-
-RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/profile.d/vivado && \
-echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
-echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
-echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/bash.bashrc && \
-echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc &&\
-echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc && \
-echo "#!/bin/sh" > /usr/local/bin/vivado_gui.sh && \
-echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /usr/local/bin/vivado_gui.sh && \
-echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
-echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
-echo "vivado" >> /usr/local/bin/vivado_gui.sh && \
-chmod +x /usr/local/bin/vivado_gui.sh
-
-RUN apt-get install -y python3 iverilog gtkwave
-RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie pytest scapy tox pytest-xdist pytest-sugar
-
-# Not sure if this is going to break Vivado
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-
-RUN apt-get install -y dbus-x11
-RUN apt-get install -y udev usbutils
-RUN cd /opt/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
-
-#RUN adduser vivado dialout
-RUN usermod -aG dialout vivado
-
-RUN python3 -m pip install --user -U pip setuptools
-
-# Ibex FuseSoC
-RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-    autoconf bison build-essential clang-format cmake curl \
-    doxygen flex g++ git golang lcov libelf1 libelf-dev libftdi1-2 \
-    libftdi1-dev libncurses5 libssl-dev libudev-dev libusb-1.0-0 lsb-release \
-    make ninja-build perl pkgconf python3 python3-pip python3-setuptools \
-    python3-wheel srecord tree xsltproc zlib1g-dev xz-utils \
-    srecord
-
-COPY --chown=vivado fusesoc-python-requirements.txt .
-RUN pip3 install -r fusesoc-python-requirements.txt
-#RUN pip3 install Mako fusesoc markupsafe
-
-#COPY vivado.xml /home/vivado/.Xilinx/Vivado/2020.2/vivado.xml
-#RUN chown -R vivado:vivado /home/vivado/.Xilinx
-
-
-# Digilent (Arty) board files https://reference.digilentinc.com/reference/software/vivado/board-files
-# https://github.com/Digilent/vivado-boards/archive/master.zip
-RUN curl --output /tmp/master.zip -L https://github.com/Digilent/vivado-boards/archive/master.zip?_ga=2.203386514.2020720558.1643112254-1582227075.1643112254 && cd /tmp/ && unzip master.zip && \
-  cp -a vivado-boards-master/new/board_files/* /opt/Xilinx/Vivado/2020.2/data/boards/board_files/
-
 RUN adduser --disabled-password --gecos '' vivado-docker-1003
-RUN adduser --disabled-password --gecos '' vivado-docker-1004
-RUN adduser --disabled-password --gecos '' vivado-docker-1005
-RUN adduser --disabled-password --gecos '' vivado-docker-1006
+
+# Verilator 4.100
+RUN git clone http://git.veripool.org/git/verilator && cd verilator && git checkout v4.100 && \
+  autoconf && ./configure && make -j8 && make install
+
+# GHDL
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+build-essential libboost-dev git gnat \
+# for GHDL LLVM backend
+clang llvm
+
+# GHDL LLVM backend with backtrace support via libbacktrace from GCC
+RUN git clone --single-branch --branch master --depth=1 https://github.com/gcc-mirror/gcc.git && \
+cd gcc/libbacktrace && ./configure && make -j16 && cp -a .libs/libbacktrace.a ../..
+
+# GHDL LLVM backend with backtrace support via libbacktrace from GCC
+RUN git clone https://github.com/ghdl/ghdl.git && \
+cd ghdl && mkdir build && cd build && ../configure --with-llvm-config --prefix=/usr/local --with-backtrace-lib=../../libbacktrace.a && make -j8 && make install
+
+# Something drags in verilator as a dependency, but an older version (v4.038) than the one we 
+# built above (which is in /usr/local). Remove the one in /usr/
+RUN apt-get remove verilator
+
+USER root
+WORKDIR /
+
+# to create TAP0 for testing purposes (CocoTB)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+iproute2 uml-utilities iputils-ping netcat \
+# to create Wireguard packets from within container
+wireguard-tools
+
+# we used this once, then we stored the private key here -- this is the private key of the container guest
+#RUN cd /etc/wireguard/ && wg genkey > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+
+#RUN cd /etc/wireguard/ && echo "MIuE1NHyNFf++dzYbFkn3pn9ouRVUtSHShYL791NcEg=" > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+#cat /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key && echo -en "[Interface]\nPrivateKey = " > /etc/wireguard/wg0.conf && \
+#chmod go= /etc/wireguard/wg0.conf && \
+#cat private.key >> /etc/wireguard/wg0.conf && echo -en "Address = 10.8.0.1/24\n\n" >> /etc/wireguard/wg0.conf && \
+#echo -en "[Peer]\nPublicKey = X6NJW+IznvItD3B5TseUasRPjPzF0PkM5+GaLIjdBG4=\nAllowedIPs = 10.8.0.0/24\nEndpoint = 192.168.255.2:51820\n" >> /etc/wireguard/wg0.conf
+## matches the hard-coded private key inside wg_lwip.
+
+# we might not copy/create this directory with COPY, but need it later
+RUN mkdir -p /etc/wireguard
+#COPY wireguard/wg0.conf /etc/wireguard/wg0.conf
+
+# This will copy the folder contents, even if empty.
+COPY wireguard/. /etc/wireguard/
+# If a wg0.conf was provided, protect it.
+RUN if [ -f /etc/wireguard/wg0.conf ]; then chmod go= /etc/wireguard/wg0.conf; fi
+
+# Workaround for Vivado bugging out with realloc(): invalid old size
+# https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
+# Note that the same workaround is needed for Quartus 
+# https://community.intel.com/t5/Intel-FPGA-Software-Installation/Running-Quartus-Prime-Standard-on-WSL-crashes-in-libudev-so/m-p/1189032
+#LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1
+# https://support.xilinx.com/s/article/000034450
+#RUN echo "export LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1" >>/opt/Xilinx/Vivado/2022.2/.settings64-Vivado.sh
+
+RUN echo "Setting LD_PRELOAD to work around issue https://support.xilinx.com/s/article/000034450"
+RUN echo "alias vivado='LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 vivado'" >>/opt/Xilinx/Vivado/2022.2/.settings64-Vivado.sh
 
 USER vivado
 WORKDIR /home/vivado
 
-#COPY --chown=vivado fusesoc-python-requirements.txt .
-#RUN pip3 install --user -U -r fusesoc-python-requirements.txt
-#RUN pip3 install --user -U Mako fusesoc
-
-#RUN pip3 install --user cocotb cocotb-bus
-
-ENV COLORTERM="truecolor"
-ENV TERM="xterm-256color"
-RUN sed -i 's/01;32/01;33/g' /home/vivado/.bashrc
-
-#USER root
+#COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+#ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+#CMD ["/bin/bash", "-l"]

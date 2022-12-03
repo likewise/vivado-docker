@@ -3,11 +3,31 @@ VER=2.0.0
 .ONESHELL:
 
 build:
-	docker build --network=host -t vivado:$(VER) .
-run:
-	docker run -ti --rm -e DISPLAY=$(DISPLAY) -v /tmp/.X11-unix:/tmp/.X11-unix -v $$PWD:/home/vivado/project -v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro -w /home/vivado/project vivado:$(VER)
+	docker build --build-arg=TERM="linux" --network=host -t vivado:$(VER) .
 
-remote:
+# assures variable % is set (used for USER and DISPLAY)
+guard-%:
+	@if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
+
+run: guard-DISPLAY guard-USER
+	docker run -ti --rm \
+	--name vivado-$(USER) \
+	-e HOST_USER_NAME=`id -nu $${USER}` \
+	-e HOST_USER_ID=`id -u $${USER}` \
+	-e HOST_GROUP_ID=`id -g $${USER}` \
+	-e DISPLAY=$(DISPLAY) \
+	--network="host" \
+	--device=/dev/bus \
+	-v /tmp/.X11-unix:/tmp/.X11-unix \
+	-v $$PWD:/project \
+	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-w /project \
+	vivado:$(VER)
+
+remote: guard-DISPLAY guard-USER
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="vivado-container"
@@ -39,18 +59,25 @@ remote:
 	# not sure why this is ALSO needed
 	setfacl -R -m user:1000:rwx $${X11TMPDIR}
 
+#	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+#	-u `id -u`:`id -g` \
+# replaced by -e HOST_USER_ID what is picked up by entrypoint.sh to
+# create a matching user in the container, on the fly, and become that user
+
 	# Launch the container
 	docker run -it --rm \
-	-u `id -u`:`id -g` \
+	--name vivado-$(USER) \
+	-e HOST_USER_NAME=`id -nu $${USER}` \
+	-e HOST_USER_ID=`id -u $${USER}` \
+	-e HOST_GROUP_ID=`id -g $${USER}` \
 	--mac-address="00:30:48:29:6b:04" \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
-	-v $$PWD:/home/vivado/project \
-	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-v $$PWD:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
-	-w /home/vivado/project \
+	-w /project-on-host \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
 	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
