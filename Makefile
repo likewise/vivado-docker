@@ -23,7 +23,7 @@ run: guard-DISPLAY guard-USER
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
 	-v $$PWD:/project \
-	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-w /project \
 	vivado:$(VER)
 
@@ -85,6 +85,7 @@ remote: guard-DISPLAY guard-USER
 	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
 	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
 	-v /dev:/dev:rw \
+	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	vivado:$(VER)
 
 	rm -rf $${X11TMPDIR}
