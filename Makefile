@@ -12,9 +12,12 @@ guard-%:
 		exit 1; \
 	fi
 
+# --user `id -u`:`id -g` is to match the container user to the host user, so if
+# files are written to the host directory, they have the correct ownership.
 run: guard-DISPLAY guard-USER
 	docker run -ti --rm \
 	--name vivado-$(USER) \
+	--user `id -u`:`id -g` \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
@@ -27,7 +30,7 @@ run: guard-DISPLAY guard-USER
 	-w /project \
 	vivado:$(VER)
 
-remote: guard-DISPLAY guard-USER
+remote: #guard-DISPLAY guard-USER
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="vivado-container"
@@ -63,10 +66,12 @@ remote: guard-DISPLAY guard-USER
 #	-u `id -u`:`id -g` \
 # replaced by -e HOST_USER_ID what is picked up by entrypoint.sh to
 # create a matching user in the container, on the fly, and become that user
+#--user `id -u`:`id -g` \
 
 	# Launch the container
 	docker run -it --rm \
 	--name vivado-$(USER) \
+	--user `id -u`:`id -g` \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
