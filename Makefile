@@ -18,6 +18,7 @@ run: guard-DISPLAY guard-USER
 	docker run -ti --rm \
 	--name vivado-$(USER) \
 	--user `id -u`:`id -g` \
+	--cap-add=NET_ADMIN \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
@@ -30,7 +31,7 @@ run: guard-DISPLAY guard-USER
 	-w /project \
 	vivado:$(VER)
 
-remote: #guard-DISPLAY guard-USER
+remote: guard-DISPLAY guard-USER
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="vivado-container"
@@ -72,6 +73,7 @@ remote: #guard-DISPLAY guard-USER
 	docker run -it --rm \
 	--name vivado-$(USER) \
 	--user `id -u`:`id -g` \
+	--cap-add=NET_ADMIN \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \

@@ -229,8 +229,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
   python3 python3-pip iverilog gtkwave
 RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie cocotbext-uart pytest scapy tox pytest-xdist pytest-sugar
 
-#RUN cd /opt && ln -snf riscv64-unknown-elf-gcc-20171231-x86_64-linux-centos6 riscv
-
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   bsdmainutils telnet \
   inotify-tools gconf2 # gtkwave refresh attempt
