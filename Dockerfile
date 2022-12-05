@@ -131,9 +131,6 @@ COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
 #RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,XilinxEULA --batch Install --config install_config.txt && \
 #  rm -rf ${VIVADO_TAR_FILE}*
 
-#add vivado tools to path (root)
-#RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /home/vivado/.bashrc
-
 #copy in the license file (root)
 #RUN mkdir -p /root/.Xilinx
 RUN mkdir -p /home/vivado/.Xilinx
@@ -150,18 +147,44 @@ RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}"
 # And then inside the container run:
 # ./xsetup -b ConfigGen
 
-# copy installation configuration for Vitis
+# copy installation configuration for Vivado
 COPY install_config.txt /
 RUN cp -a /install_config.txt .
 RUN ${VIVADO_TAR_FILE}/xsetup --agree XilinxEULA,3rdPartyEULA  --batch Install --config install_config.txt && \
   rm -rf ${VIVADO_TAR_FILE}*
 
+# @TODO move unzip to top as a dependency
+USER root
+WORKDIR /root
+# Install Xilinx cable drivers
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+unzip
+USER vivado
+WORKDIR /home/vivado
+
+# Workaround (attempt) for https://support.xilinx.com/s/article/000034450
+# https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
+RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/Vivado/2022.2/bin/vivado
+
+# Alveo U50 board files
+RUN wget ${VIVADO_TAR_HOST}/au50_boardfiles_v1_3_20211104.zip && \
+cd /opt/Xilinx/Vivado/2022.2/data/xhub/boards/XilinxBoardStore/boards/Xilinx/ && \
+unzip /home/vivado/au50_boardfiles_v1_3_20211104.zip && \
+chmod ugo+rx -R . && \
+cd && rm au50_boardfiles_v1_3_20211104.zip
+
 USER root
 WORKDIR /root
 
+# Add Vivado to environment for docker users.
+# Use double quotes so that the variables do get expanded during docker build.
+RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc
+
+
 # Install Xilinx cable drivers
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-  udev usbutils
+udev usbutils \
+unzip
 RUN cd /opt/Xilinx/Vivado/2022.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
@@ -172,24 +195,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 #RUN wget https://github.com/jgraph/drawio-desktop/releases/download/v20.3.0/drawio-amd64-20.3.0.deb && \
 #  dpkg -i drawio-amd64-20.3.0.deb && rm drawio-amd64-20.3.0.deb
 
-USER vivado
-WORKDIR /home/vivado
-
-# Install 'pipelinec' executable
-RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
-  echo "export PATH=$PATH:$PWD/PipelineC/src" >> /home/vivado/.bashrc
-
-# @TODO Document if/how we need OSS CAD Suite.
-#
-#RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
-RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
-RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
-
-
 # VexRiscv
-USER root
-WORKDIR /root
-
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   software-properties-common \
   scala build-essential git make autoconf g++ flex bison \
@@ -204,16 +210,18 @@ RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E4
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   sbt
 
+# OpenOCD mainstream
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   libftdi1 libftdi1-dev libusb-1.0.0-dev make libtool pkg-config \ 
   libz-dev gdb \
   locales autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
   pkg-config libtool libyaml-dev libftdi-dev libusb-1.0.0
 
-RUN curl -sL "https://nav.dl.sourceforge.net/project/openocd/openocd/0.12.0-rc1/openocd-0.12.0-rc1.tar.bz2" | tar xj
-RUN cd openocd-0.12.0-rc1 && ./configure --enable-ftdi && make install -j8
+RUN curl -sL "https://nav.dl.sourceforge.net/project/openocd/openocd/0.12.0-rc2/openocd-0.12.0-rc2.tar.bz2" | tar xj
+RUN cd openocd-0.12.0-rc2 && ./configure --enable-ftdi && make install -j16
 
-RUN git clone https://github.com/SpinalHDL/openocd_riscv && cd openocd_riscv && \
+# OpenOCD VexRiscv fork
+RUN git clone https://github.com/SpinalHDL/openocd_riscv openocd_vexriscv && cd openocd_vexriscv && \
 ./bootstrap && ./configure --enable-xlnx-pcie-xvc --prefix=/opt/openocd-vexriscv && make -j16 install && cd ..
 
 # killall netstat lsusb. default-jdk to build simulation support for verilator (jni.h was missing)
@@ -241,9 +249,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   python3 python3-pip iverilog gtkwave
-RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie pytest scapy tox pytest-xdist pytest-sugar
-
-RUN cd /opt && ln -snf riscv64-unknown-elf-gcc-20171231-x86_64-linux-centos6 riscv
+RUN pip3 install cocotb cocotb-bus cocotb-test cocotbext-axi cocotbext-eth cocotbext-pcie cocotbext-uart pytest scapy tox pytest-xdist pytest-sugar
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   bsdmainutils telnet \
@@ -273,8 +279,11 @@ libglib2.0 libpixman-1-dev device-tree-compiler
 # device-tree-compiler is not a hard dependency but can be used
 # to modify virtual machines in qemu using a modified dtb
 
+USER vivado
+WORKDIR /home/vivado
+
 # build and install qemu to /opt
-RUN git clone https://github.com/qemu/qemu.git && cd qemu && \
+RUN git clone --depth=1 https://github.com/qemu/qemu.git && cd qemu && \
 ./configure --target-list=riscv32-softmmu --prefix=/opt && \
 make -j8 install && cd .. && rm -rf qemu
 
@@ -287,15 +296,13 @@ RUN ls -al /opt/share/crosstool-ng/samples/ | grep riscv
 
 # add crosstool configuration for riscv with newlib and picolibc, this contains the install path also
 # wow, the ADD/COPY command syntax is really horrible if you want to copy directories recursively...#
-ADD riscv32-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc
+ADD --chown=vivado:vivado riscv32-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc
 
 # switch to picolib 1.7.9
 RUN sed -ri 's@^CT_PICOLIBC_DEVEL_BRANCH=.*@CT_PICOLIBC_DEVEL_BRANCH="1.7.9"@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config && \
 grep -e 'CT_PICOLIBC_DEVEL_BRANCH="1.7.9"' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
 # enable GCC test suite
 RUN sed -ri 's@^(# CT_TEST_SUITE_GCC is not set|CT_TEST_SUITE_GCC=.*)@CT_TEST_SUITE_GCC=y@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
-
-#ADD riscv64-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv64-unknown-elf-picolibc
 
 # verify that the configuration is in place
 RUN head /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
@@ -308,11 +315,8 @@ WORKDIR /home/vivado
 RUN mkdir crosstool-riscv32 && cd crosstool-riscv32 && /opt/bin/ct-ng riscv32-unknown-elf-picolibc && /opt/bin/ct-ng source \
 && /opt/bin/ct-ng build
 
-#RUN echo 'export PATH=$PATH:/home/vexriscv/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
-RUN echo 'export PATH=$PATH:/home/vivado/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
-
 # make cross toolchain and qemu available during container build
-ENV PATH="${PATH}:/home/vivado/x-tools/riscv32-unknown-elf/bin:/opt/bin"
+ENV PATH="${PATH}:/opt/x-tools/riscv32-unknown-elf/bin:/opt/bin"
 
 # build the hello world example, run it semihosted in qemu and verify it runs correctly
 RUN git clone --branch=1.7.9 --depth=1 https://github.com/picolibc/picolibc.git && \
@@ -324,17 +328,13 @@ RUN chmod go+rx /home/vivado
 #USER root
 #WORKDIR /root
 
-# Alveo U50 board files
-RUN wget ${VIVADO_TAR_HOST}/au50_boardfiles_v1_3_20211104.zip && \
-cd /opt/Xilinx/Vivado/2022.2/data/xhub/boards/XilinxBoardStore/boards/Xilinx/ && \
-unzip /home/vivado/au50_boardfiles_v1_3_20211104.zip && \
-chmod ugo+rx -R . && \
-cd && rm au50_boardfiles_v1_3_20211104.zip
-
 COPY create-container-user.sh /usr/local/bin/create-container-user.sh
 
 USER root
 WORKDIR /root
+
+# use single quotes so that the variables do not get expanded during docker build
+RUN echo 'export PATH=$PATH:/opt/x-tools/riscv32-unknown-elf/bin:/opt/bin' >> /etc/bash.bashrc
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1001
 RUN adduser --disabled-password --gecos '' vivado-docker-1002
@@ -361,6 +361,10 @@ cd ghdl && mkdir build && cd build && ../configure --with-llvm-config --prefix=/
 # Something drags in verilator as a dependency, but an older version (v4.038) than the one we 
 # built above (which is in /usr/local). Remove the one in /usr/
 RUN apt-get remove verilator
+
+# Surelog dependencies
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+build-essential cmake git pkg-config tclsh swig uuid-dev libgoogle-perftools-dev python3 python3-orderedmultidict python3-psutil python3-dev default-jre lcov
 
 USER root
 WORKDIR /
@@ -390,19 +394,24 @@ COPY wireguard/. /etc/wireguard/
 # If a wg0.conf was provided, protect it.
 RUN if [ -f /etc/wireguard/wg0.conf ]; then chmod go= /etc/wireguard/wg0.conf; fi
 
-# Workaround for Vivado bugging out with realloc(): invalid old size
-# https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
-# Note that the same workaround is needed for Quartus 
-# https://community.intel.com/t5/Intel-FPGA-Software-Installation/Running-Quartus-Prime-Standard-on-WSL-crashes-in-libudev-so/m-p/1189032
-#LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1
-# https://support.xilinx.com/s/article/000034450
-#RUN echo "export LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1" >>/opt/Xilinx/Vivado/2022.2/.settings64-Vivado.sh
-
-RUN echo "Setting LD_PRELOAD to work around issue https://support.xilinx.com/s/article/000034450"
-RUN echo "alias vivado='LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 vivado'" >>/opt/Xilinx/Vivado/2022.2/.settings64-Vivado.sh
-
 USER vivado
 WORKDIR /home/vivado
+
+# Install 'pipelinec' executable
+RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
+  echo 'export PATH=$PATH:$PWD/PipelineC/src' >> /home/vivado/.bashrc
+
+# @TODO Document if/how we need OSS CAD Suite.
+#
+#RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
+RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
+RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
+
+
+RUN mkdir -p .Xilinx
+# This will copy the folder contents, even if empty.
+# We put our private license in it before building, but not in GIT.
+COPY .Xilinx/. .Xilinx/
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

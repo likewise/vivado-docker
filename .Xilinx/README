@@ -1,0 +1,3 @@
+Copy a Xilinx.lic file here if you need to import
+licenses into the Docker image. Also note there are
+other ways to import licenses, like using a bind mount.
