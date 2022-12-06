@@ -1,0 +1,2 @@
+Add your wg0.conf (with private key) here.
+They are ignored by GIT through .gitignore.
