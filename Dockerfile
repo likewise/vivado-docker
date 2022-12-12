@@ -385,7 +385,7 @@ RUN if [ -f /etc/wireguard/wg0.conf ]; then chmod go= /etc/wireguard/wg0.conf; f
 USER vivado
 WORKDIR /home/vivado
 
-# Workaround (attempt) for https://support.xilinx.com/s/article/000034450
+# Workaround for https://support.xilinx.com/s/article/000034450
 # https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
 RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/Vivado/2021.2/bin/vivado
 
@@ -400,12 +400,39 @@ RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2
 RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
 
 # @TODO remove
-RUN mkdir -p /opt/Xilinx/Vitis/2021.2/ && touch /opt/Xilinx/Vitis/2021.2/settings64.sh
+#RUN mkdir -p /opt/Xilinx/Vitis/2021.2/ && touch /opt/Xilinx/Vitis/2021.2/settings64.sh
 
 RUN mkdir -p .Xilinx
 # This will copy the folder contents, even if empty.
-# We put out private license in it, but not in GIT.
+# We put our private license in it, but not in GIT.
 COPY .Xilinx/. .Xilinx/
+
+USER root
+WORKDIR /
+
+# Verilator 5.002, build from source
+RUN git clone http://git.veripool.org/git/verilator && cd verilator && git checkout v5.002 && \
+  autoconf && ./configure && make -j `nproc` && make install && cd .. && rm -rf verilator
+
+# Build dependencies for GTKWave 3 build from source
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+tcl-dev tk-dev libgtk2.0-dev libbz2-dev
+
+ # GTKWave 3, build from source
+RUN git clone --depth=1 https://github.com/gtkwave/gtkwave.git && cd gtkwave/gtkwave3-gtk3 && ./autogen.sh && \
+./configure && make -j16 && make install && cd .. && rm -rf gtkwave
+
+# Remove build dependencies for GTKWave 3 build
+RUN apt-get remove -y \
+tcl-dev tk-dev libgtk2.0-dev libbz2-dev
+
+# Needed if applications want to set up TAP0
+RUN echo "ALL ALL = NOPASSWD:/usr/sbin/setcap cap_net_admin=+pe" >>/etc/sudoers.d/cap_net
+# Needed if Makefile's and scripts want to set up TAP0
+RUN echo "ALL ALL = NOPASSWD:/usr/sbin/ip" >>/etc/sudoers.d/ip
+
+USER vivado
+WORKDIR /home/vivado
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
