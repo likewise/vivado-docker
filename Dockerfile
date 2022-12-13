@@ -426,6 +426,10 @@ RUN git clone --depth=1 https://github.com/gtkwave/gtkwave.git && cd gtkwave/gtk
 RUN apt-get remove -y \
 tcl-dev tk-dev libgtk2.0-dev libbz2-dev
 
+# tcpdump and arping for network analysis
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+tcpdump arping
+
 # Needed if applications want to set up TAP0
 RUN echo "ALL ALL = NOPASSWD:/usr/sbin/setcap cap_net_admin=+pe" >>/etc/sudoers.d/cap_net
 # Needed if Makefile's and scripts want to set up TAP0

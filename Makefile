@@ -1,4 +1,4 @@
-VER=2.0.1
+VER=2.0.2
 
 .ONESHELL:
 
@@ -94,7 +94,7 @@ remote: guard-DISPLAY guard-USER
 	-v /dev:/dev:rw \
 	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-v ~/../shared/wireguard:/etc/wireguard:ro \
-	vivado:$(VER)
+	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
 
