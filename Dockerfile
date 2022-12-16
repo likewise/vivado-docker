@@ -147,7 +147,7 @@ RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}"
 # And then inside the container run:
 # ./xsetup -b ConfigGen
 
-# copy installation configuration for Vitis
+# copy installation configuration for Vivado
 COPY install_config.txt /
 RUN cp -a /install_config.txt .
 RUN ${VIVADO_TAR_FILE}/xsetup --agree XilinxEULA,3rdPartyEULA  --batch Install --config install_config.txt && \
@@ -168,10 +168,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 #  libnotify4 libnss3 libxss1 xdg-utils libsecret-1-0
 #RUN wget https://github.com/jgraph/drawio-desktop/releases/download/v20.3.0/drawio-amd64-20.3.0.deb && \
 #  dpkg -i drawio-amd64-20.3.0.deb && rm drawio-amd64-20.3.0.deb
-
-# add Vivado tools to enviroment for all users
-# @TODO remove
-RUN echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc
 
 # VexRiscv
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
@@ -399,9 +395,6 @@ RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
 RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-11-25/oss-cad-suite-linux-x64-20221125.tgz | tar xzv
 RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
 
-# @TODO remove
-#RUN mkdir -p /opt/Xilinx/Vitis/2021.2/ && touch /opt/Xilinx/Vitis/2021.2/settings64.sh
-
 RUN mkdir -p .Xilinx
 # This will copy the folder contents, even if empty.
 # We put our private license in it, but not in GIT.
@@ -427,8 +420,13 @@ RUN apt-get remove -y \
 tcl-dev tk-dev libgtk2.0-dev libbz2-dev
 
 # tcpdump and arping for network analysis
+# graphviz and eog for binary tree analysis
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-tcpdump arping
+tcpdump arping eog graphviz
+
+# frug for generating IP address prefixes
+RUN (wget -O- https://sites.google.com/site/thilangane/frug.tar.gz?attredirects=0 | tar xz) && \
+cd frug && make && cp -a frug /usr/local/bin
 
 # Needed if applications want to set up TAP0
 RUN echo "ALL ALL = NOPASSWD:/usr/sbin/setcap cap_net_admin=+pe" >>/etc/sudoers.d/cap_net
