@@ -433,6 +433,45 @@ RUN echo "ALL ALL = NOPASSWD:/usr/sbin/setcap cap_net_admin=+pe" >>/etc/sudoers.
 # Needed if Makefile's and scripts want to set up TAP0
 RUN echo "ALL ALL = NOPASSWD:/usr/sbin/ip" >>/etc/sudoers.d/ip
 
+RUN adduser --disabled-password --gecos '' vivado-docker-1004
+RUN adduser --disabled-password --gecos '' vivado-docker-1005
+RUN adduser --disabled-password --gecos '' vivado-docker-1006
+RUN adduser --disabled-password --gecos '' vivado-docker-1007
+RUN adduser --disabled-password --gecos '' vivado-docker-1008
+RUN adduser --disabled-password --gecos '' vivado-docker-1009
+RUN adduser --disabled-password --gecos '' vivado-docker-1010
+RUN adduser --disabled-password --gecos '' vivado-docker-1011
+RUN adduser --disabled-password --gecos '' vivado-docker-1012
+RUN adduser --disabled-password --gecos '' vivado-docker-1013
+
+# Not the best solution, but symlink to the 100G license.
+USER vivado-docker-1001
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1002
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1003
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1004
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1005
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1006
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1007
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1008
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1009
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1010
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1011
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1012
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+USER vivado-docker-1013
+RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+
 USER vivado
 WORKDIR /home/vivado
 
