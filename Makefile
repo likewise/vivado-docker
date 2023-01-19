@@ -1,4 +1,4 @@
-VER=2.0.3
+VER=2.0.4
 
 .ONESHELL:
 
@@ -97,6 +97,8 @@ remote: guard-DISPLAY guard-USER
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
+
+#	-v ~/../shared/.Xilinx/100G.lic:/home/vivado-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
 
 
 #	-v /dev/bus/usb:/dev/bus/usb \
