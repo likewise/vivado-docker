@@ -445,6 +445,7 @@ RUN adduser --disabled-password --gecos '' vivado-docker-1012
 RUN adduser --disabled-password --gecos '' vivado-docker-1013
 
 # Not the best solution, but symlink to the 100G license.
+# @TODO run this as a for loop as root, but make sure ownership is on users
 USER vivado-docker-1001
 RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
 USER vivado-docker-1002
@@ -471,6 +472,12 @@ USER vivado-docker-1012
 RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
 USER vivado-docker-1013
 RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
+
+USER root
+WORKDIR /
+
+# for pvpn 
+RUN pip3 install pproxy pycryptodome
 
 USER vivado
 WORKDIR /home/vivado

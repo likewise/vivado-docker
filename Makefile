@@ -1,4 +1,7 @@
-VER=2.0.4
+VER=2.0.5
+
+# make build   = rebuild the container image
+# make remote  = run the container image on the host you are logged in to via SSH.
 
 .ONESHELL:
 
@@ -12,9 +15,20 @@ guard-%:
 		exit 1; \
 	fi
 
+# assures GIT user.name and user.email is set outside of container
+.PHONY: assert-gitconfig
+assert-gitconfig:
+	set -e
+	(git config --global --list | grep -qe user.name) || \
+	(echo 'Please configure GIT first:\ngit config --global user.name "FIRST_NAME LAST_NAME"'; false)
+	(git config --global --list | grep -qe user.email) || \
+	(echo 'Please configure GIT first:\ngit config --global user.email "MY_NAME@example.com"'; false)
+
 # --user `id -u`:`id -g` is to match the container user to the host user, so if
 # files are written to the host directory, they have the correct ownership.
-run: guard-DISPLAY guard-USER
+run: guard-DISPLAY guard-USER assert-gitconfig
+	echo "Make run is not well maintained, did you mean make remote?"
+	exit
 	docker run -ti --rm \
 	--name vivado-$(USER) \
 	--user `id -u`:`id -g` \
@@ -26,12 +40,12 @@ run: guard-DISPLAY guard-USER
 	--network="host" \
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
-	-v $$PWD:/project \
+	-v $$PWD:/project-on-host \
 	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
-	-w /project \
+	-w /project-on-host \
 	vivado:$(VER)
 
-remote: guard-DISPLAY guard-USER
+remote: guard-DISPLAY guard-USER assert-gitconfig
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="vivado-container"
@@ -94,6 +108,10 @@ remote: guard-DISPLAY guard-USER
 	-v /dev:/dev:rw \
 	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-v ~/../shared/wireguard:/etc/wireguard:ro \
+	-v ~/.ssh:/home/vivado/.ssh:ro \
+	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
+	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
+	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
