@@ -479,6 +479,12 @@ WORKDIR /
 # for pvpn 
 RUN pip3 install pproxy pycryptodome
 
+# inspect UART and Ethernet, venv support for Python3
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+picocom wireshark python3-venv
+
+#RUN git clone https://github.com/ghdl/ghdl-yosys-plugin.git && cd ghdl-yosys-plugin && make -j16
+
 USER vivado
 WORKDIR /home/vivado
 

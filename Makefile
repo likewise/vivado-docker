@@ -1,4 +1,4 @@
-VER=2.0.5
+VER=2.0.6
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
