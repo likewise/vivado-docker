@@ -485,6 +485,22 @@ picocom wireshark python3-venv
 
 #RUN git clone https://github.com/ghdl/ghdl-yosys-plugin.git && cd ghdl-yosys-plugin && make -j16
 
+# Yosys
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+	libreadline-dev gawk tcl-dev libffi-dev git \
+	graphviz xdot pkg-config python3 libboost-system-dev \
+	libboost-python-dev libboost-filesystem-dev zlib1g-dev
+
+# Yosys 0.25
+RUN git clone --depth=1 --branch yosys-0.25 https://github.com/YosysHQ/yosys.git && cd yosys && make config-gcc && make -j16 && \
+#make -j16 test && \
+make install && cd .. && rm -rf yosys
+
+# ghdl-yosys-plugin: brings VHDL synthesis to Yosys
+RUN git clone https://github.com/ghdl/ghdl-yosys-plugin.git && cd ghdl-yosys-plugin && \
+git checkout d7b09b78b15e69c8f55d0461ef9254421c879010 && \
+make -j16 && make install && cd .. && rm -rf ghdl-yosys-plugin
+
 USER vivado
 WORKDIR /home/vivado
 
