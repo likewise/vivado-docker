@@ -503,6 +503,7 @@ make -j16 && make install && cd .. && rm -rf ghdl-yosys-plugin
 
 USER vivado
 WORKDIR /home/vivado
+WORKDIR /project-on-host/
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
