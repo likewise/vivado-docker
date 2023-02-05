@@ -504,14 +504,10 @@ make -j16 && make install && cd .. && rm -rf ghdl-yosys-plugin
 
 USER vivado
 WORKDIR /home/vivado
+WORKDIR /project-on-host/
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #CMD ["/bin/bash", "-l"]
-
-RUN mkdir -p sandbox && cd sandbox && \
-git clone "https://gitlab+deploy-token-1936119:SYWZPJzNvwKasdyRxb7t@gitlab.com/blackwiregroup/poc/SpinalCorundum.git" && \
-git clone "https://gitlab+deploy-token-1936119:SYWZPJzNvwKasdyRxb7t@gitlab.com/blackwiregroup/poc/Finka.git" && \
-cd Finka && sbt "runMain finka.Finka" && cd .. && rm -rf Finka SpinalCorundum && cd ..
 
 RUN find /home/vivado/.cache | grep sbt-bloop || true
