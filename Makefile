@@ -1,4 +1,4 @@
-VER=2.0.7
+VER=2.0.8
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
@@ -115,6 +115,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
+
 
 #	-v ~/../shared/.Xilinx/100G.lic:/home/vivado-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
 

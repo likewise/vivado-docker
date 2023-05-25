@@ -15,7 +15,8 @@ FROM ubuntu:22.04
 # You can override the ARG default (see below) on the command line, or adapt this Dockerfile.
 # docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
 #
-ARG VIVADO_TAR_HOST="http://localhost:8000"
+#ARG VIVADO_TAR_HOST="http://localhost:8000"
+ARG VIVADO_TAR_HOST="http://192.168.1.30:8000"
 # without .tar.gz suffix
 ARG VIVADO_TAR_FILE="Xilinx_Unified_2021.2_1021_0703"
 ARG VIVADO_VERSION="2021.2"
@@ -159,7 +160,7 @@ WORKDIR /root
 # Install Xilinx cable drivers
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   udev usbutils
-RUN cd /opt/Xilinx/Vivado/2021.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
+RUN cd /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   dbus-x11 
@@ -304,7 +305,7 @@ RUN chmod go+rx /home/vivado
 
 # Alveo U50 board files
 RUN wget ${VIVADO_TAR_HOST}/au50_boardfiles_v1_3_20211104.zip && \
-cd /opt/Xilinx/Vivado/2021.2/data/xhub/boards/XilinxBoardStore/boards/Xilinx/ && \
+cd /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/xhub/boards/XilinxBoardStore/boards/Xilinx/ && \
 unzip /home/vivado/au50_boardfiles_v1_3_20211104.zip && \
 chmod ugo+rx -R . && \
 cd && rm au50_boardfiles_v1_3_20211104.zip
@@ -425,8 +426,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 tcpdump arping eog graphviz
 
 # frug for generating IP address prefixes
-RUN (wget -O- https://sites.google.com/site/thilangane/frug.tar.gz?attredirects=0 | tar xz) && \
-cd frug && make && cp -a frug /usr/local/bin
+#RUN (wget -O- https://sites.google.com/site/thilangane/frug.tar.gz?attredirects=0 | tar xz) && \
+#cd frug && make && cp -a frug /usr/local/bin
 
 # Needed if applications want to set up TAP0
 RUN echo "ALL ALL = NOPASSWD:/usr/sbin/setcap cap_net_admin=+pe" >>/etc/sudoers.d/cap_net
@@ -507,3 +508,10 @@ WORKDIR /home/vivado
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #CMD ["/bin/bash", "-l"]
+
+RUN mkdir -p sandbox && cd sandbox && \
+git clone "https://gitlab+deploy-token-1936119:SYWZPJzNvwKasdyRxb7t@gitlab.com/blackwiregroup/poc/SpinalCorundum.git" && \
+git clone "https://gitlab+deploy-token-1936119:SYWZPJzNvwKasdyRxb7t@gitlab.com/blackwiregroup/poc/Finka.git" && \
+cd Finka && sbt "runMain finka.Finka" && cd .. && rm -rf Finka SpinalCorundum && cd ..
+
+RUN find /home/vivado/.cache | grep sbt-bloop || true
