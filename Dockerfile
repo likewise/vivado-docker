@@ -16,10 +16,11 @@ FROM ubuntu:22.04
 # docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
 #
 #ARG VIVADO_TAR_HOST="http://localhost:8000"
-ARG VIVADO_TAR_HOST="http://192.168.1.30:8000"
+ARG VIVADO_TAR_HOST="http://127.0.0.1:8000"
 # without .tar.gz suffix
-ARG VIVADO_TAR_FILE="Xilinx_Unified_2021.2_1021_0703"
-ARG VIVADO_VERSION="2021.2"
+#ARG VIVADO_TAR_FILE="Xilinx_Unified_2021.2_1021_0703"
+ARG VIVADO_TAR_FILE="Xilinx_Unified_2023.1_0507_1903"
+ARG VIVADO_VERSION="2023.1"
 #ARG PETALINUX_RUN_FILE="petalinux-v2022.2-10141622-installer.run"
 
 # only available during build
@@ -138,8 +139,8 @@ RUN mkdir -p /home/vivado/.Xilinx
 
 # download and run the install
 RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
-  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar.gz -q | \
-  tar xzvf -
+  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar -q | \
+  tar xvf -
 
 # If the following fails for a newer version of Xilinx, because of new configuration
 # options, look for the latest image and manually create a new install_config.txt.
@@ -384,7 +385,7 @@ WORKDIR /home/vivado
 
 # Workaround for https://support.xilinx.com/s/article/000034450
 # https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
-RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/Vivado/2021.2/bin/vivado
+RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/Vivado/${VIVADO_VERSION}/bin/vivado
 
 # Install 'pipelinec' executable
 RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \

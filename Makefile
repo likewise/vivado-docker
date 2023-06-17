@@ -1,4 +1,4 @@
-VER=2.0.9
+VER=4.0.0
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
@@ -101,6 +101,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-w /project-on-host \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
+	-v /sys/devices:/sys/devices:ro \
 	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
 	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
 	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
