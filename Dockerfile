@@ -505,6 +505,20 @@ make -j16 && make install && cd .. && rm -rf ghdl-yosys-plugin
 
 USER vivado
 WORKDIR /home/vivado
+
+# LLVM (re-uses the GCC sysroot from picolibc)
+RUN git clone https://github.com/llvm/llvm-project.git riscv-llvm && cd riscv-llvm && ln -s ../../clang llvm/tools && \
+mkdir _build && cd _build && \
+cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" \
+  -DBUILD_SHARED_LIBS=True -DLLVM_USE_SPLIT_DWARF=True \
+  -DCMAKE_INSTALL_PREFIX="/opt" \
+  -DLLVM_OPTIMIZED_TABLEGEN=True -DLLVM_BUILD_TESTS=False \
+  -DDEFAULT_SYSROOT="/opt/x-tools/riscv32-unknown-elf/picolibc" \
+  -DLLVM_DEFAULT_TARGET_TRIPLE="riscv32-unknown-elf" \
+  -DLLVM_TARGETS_TO_BUILD="RISCV" \
+  ../llvm && \
+cmake --build . --target install
+
 WORKDIR /project-on-host/
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
