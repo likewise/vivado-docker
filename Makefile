@@ -101,12 +101,13 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-w /project-on-host \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
-	-v /sys/devices:/sys/devices:ro \
 	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
 	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
 	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
 	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
 	-v /dev:/dev:rw \
+	-v /sys/dev:/sys/dev:ro \
+	-v /sys/devices:/sys/devices:ro \
 	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-v ~/../shared/wireguard:/etc/wireguard:ro \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
