@@ -2,9 +2,20 @@
 
 Vivado installed into a Docker image
 
+## Build prerequisites
+
+Docker or Podman.
+
+The Dockerfile will try to download the Vivado installer from a (local)
+web server. So run a HTTP server that hosts the Vivado stand-alone (full)
+installer.
+
+For example; run `python3 -m http.server --bind 127.0.0.1` in the folder
+with the Vivado installer .tar file.
+
 ## Build instructions
 
-See Dockerfile
+Run `make build`.
 
 ## Running
 

@@ -4,7 +4,7 @@ FROM ubuntu:22.04
 #
 # A HTTP(S) host must serve out the Xilinx_Unified_2020.2_1118_1232.tar.gz and petalinux-v2020.2-final-installer.run
 # An easy way is to run a temporary server
-# python3 -m http.server 8000
+# python3 -m http.server --bind 127.0.0.1 8000
 #
 # build with
 # docker build --network=host -t vivado .
@@ -15,9 +15,8 @@ FROM ubuntu:22.04
 # You can override the ARG default (see below) on the command line, or adapt this Dockerfile.
 # docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
 #
-#ARG VIVADO_TAR_HOST="http://localhost:8000"
-ARG VIVADO_TAR_HOST="http://127.0.0.1:8000"
-# without .tar.gz suffix
+ARG VIVADO_TAR_HOST="http://localhost:8000"
+# without .tar(.gz) suffix
 #ARG VIVADO_TAR_FILE="Xilinx_Unified_2021.2_1021_0703"
 ARG VIVADO_TAR_FILE="Xilinx_Unified_2023.1_0507_1903"
 ARG VIVADO_VERSION="2023.1"
@@ -414,7 +413,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 tcl-dev tk-dev libgtk2.0-dev libbz2-dev
 
  # GTKWave 3, build from source
-RUN git clone --depth=1 https://github.com/gtkwave/gtkwave.git && cd gtkwave/gtkwave3-gtk3 && ./autogen.sh && \
+RUN git clone --branch=lts --depth=1 https://github.com/gtkwave/gtkwave.git && cd gtkwave/gtkwave3-gtk3 && ./autogen.sh && \
 ./configure && make -j16 && make install && cd .. && rm -rf gtkwave
 
 # Remove build dependencies for GTKWave 3 build
@@ -505,6 +504,15 @@ make -j16 && make install && cd .. && rm -rf ghdl-yosys-plugin
 
 USER vivado
 WORKDIR /home/vivado
+
+# apt install -y curl gcc make build-essential
+RUN (curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y) && \
+(source "$HOME/.cargo/env" && \
+rustup update && \
+rustup component add llvm-tools-preview && \
+rustup target list \
+)
+
 WORKDIR /project-on-host/
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh

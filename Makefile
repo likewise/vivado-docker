@@ -82,16 +82,33 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 # replaced by -e HOST_USER_ID what is picked up by entrypoint.sh to
 # create a matching user in the container, on the fly, and become that user
 #--user `id -u`:`id -g` \
+#	--mac-address="00:30:48:29:6b:04" \
+
+	find $${X11TMPDIR}
+
+# adapt for root-less podman vs root-full docker
+	docker --version | grep podman
+	if [ $$? -eq 0 ]; then
+		echo "Detected Podman"
+		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW"
+	else
+		echo "Assuming Docker"
+		export PODMAN_EXTRA_ARGS=
+	fi
+
+	echo $${PODMAN_EXTRA_ARGS}
+
 
 	# Launch the container
 	docker run -it --rm \
 	--name vivado-$(USER) \
-	--user `id -u`:`id -g` \
 	--cap-add=NET_ADMIN \
+	--net=host \
+	--user `id -u`:`id -g` \
+	$${PODMAN_EXTRA_ARGS} \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
-	--mac-address="00:30:48:29:6b:04" \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
@@ -99,14 +116,6 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v $$PWD:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /project-on-host \
-	--device-cgroup-rule 'c 188:* rmw' \
-	--device-cgroup-rule 'c 189:* rmw' \
-	-v /sys/devices:/sys/devices:ro \
-	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
-	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
-	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
-	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
-	-v /dev:/dev:rw \
 	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-v ~/../shared/wireguard:/etc/wireguard:ro \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
@@ -116,6 +125,16 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
+
+#	--device-cgroup-rule 'c 188:* rmw' \
+#	--device-cgroup-rule 'c 189:* rmw' \
+#	-v /sys/devices:/sys/devices:ro \
+#	-v /dev:/dev:rw \
+
+#	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
+#	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
+#	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
+#	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
 
 
 #	-v ~/../shared/.Xilinx/100G.lic:/home/vivado-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
