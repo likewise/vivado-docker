@@ -1,6 +1,7 @@
-# vivado-docker
+# radiant-docker
 
-Vivado installed into a Docker image
+Experimental branch for Lattice Radiant (instead of AMD/Xilinx Vivado).
+The rest of this README still needs to be adapted.
 
 ## Build prerequisites
 
@@ -32,3 +33,11 @@ USER vivado
 WORKDIR /home/vivado
 
 Beyond this point, some more magic is performed, as an ENR
+
+## lmgrd
+
+lmgrd requires LSB
+
+https://support.xilinx.com/s/article/59876?language=en_US
+
+sudo ln -snf /lib64/ld-linux-x86-64.so.2 /lib64/ld-lsb-x86-64.so.3

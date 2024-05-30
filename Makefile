@@ -1,4 +1,4 @@
-VER=4.0.0
+VER=1.0.0
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
@@ -6,7 +6,7 @@ VER=4.0.0
 .ONESHELL:
 
 build:
-	docker build --build-arg=TERM="linux" --network=host -t vivado:$(VER) .
+	docker build --build-arg=TERM="linux" --network=host -t radiant:$(VER) .
 
 # assures variable % is set (used for USER and DISPLAY)
 guard-%:
@@ -30,7 +30,7 @@ run: guard-DISPLAY guard-USER assert-gitconfig
 	echo "Make run is not well maintained, did you mean make remote?"
 	exit
 	docker run -ti --rm \
-	--name vivado-$(USER) \
+	--name radiant-$(USER) \
 	--user `id -u`:`id -g` \
 	--cap-add=NET_ADMIN \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
@@ -41,14 +41,14 @@ run: guard-DISPLAY guard-USER assert-gitconfig
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
 	-v $$PWD:/project-on-host \
-	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-v ~/../shared/.Xilinx/100G.lic:/home/radiant/.Xilinx/Xilinx.lic:ro \
 	-w /project-on-host \
-	vivado:$(VER)
+	radiant:$(VER)
 
 remote: guard-DISPLAY guard-USER assert-gitconfig
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
-	export CONTAINER_HOSTNAME="vivado-container"
+	export CONTAINER_HOSTNAME="radiant-container"
 
 	# Create a directory for the socket
 	rm -rf $${X11TMPDIR}
@@ -77,7 +77,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	# not sure why this is ALSO needed
 	setfacl -R -m user:1000:rwx $${X11TMPDIR}
 
-#	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+#	-v ~/.Xilinx/100G.lic:/home/radiant/.Xilinx/Xilinx.lic:ro \
 #	-u `id -u`:`id -g` \
 # replaced by -e HOST_USER_ID what is picked up by entrypoint.sh to
 # create a matching user in the container, on the fly, and become that user
@@ -90,7 +90,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	docker --version | grep podman
 	if [ $$? -eq 0 ]; then
 		echo "Detected Podman"
-		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW"
+		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW" # --mac-address=00:30:48:29:6b:05"
 	else
 		echo "Assuming Docker"
 		export PODMAN_EXTRA_ARGS=
@@ -98,13 +98,12 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	echo $${PODMAN_EXTRA_ARGS}
 
-
 	# Launch the container
 	docker run -it --rm \
-	--name vivado-$(USER) \
+	--name radiant-$(USER) \
 	--cap-add=NET_ADMIN \
-	--net=host \
 	--user `id -u`:`id -g` \
+	--net=host \
 	$${PODMAN_EXTRA_ARGS} \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
@@ -116,13 +115,15 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v $$PWD:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /project-on-host \
-	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-v ~/../shared/.Xilinx/100G.lic:/home/radiant/.Xilinx/Xilinx.lic:ro \
 	-v ~/../shared/wireguard:/etc/wireguard:ro \
-	-v ~/.ssh:/home/vivado/.ssh:ro \
-	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
-	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
-	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
-	vivado:$(VER) || echo ERROR $$?
+	-v ~/.ssh:/home/radiant/.ssh:ro \
+	-v ~/.ssh:/home/radiant-docker-`id -u $${USER}`/.ssh:ro \
+	-v ~/.gitconfig:/home/radiant/.gitconfig:ro \
+	-v ~/.gitconfig:/home/radiant-docker-`id -u $${USER}`/.gitconfig:ro \
+	--device /dev/net/tun:/dev/net/tun:rmw \
+	--device-cgroup-rule 'c 10:* rmw' \
+	radiant:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
 
@@ -137,14 +138,14 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 #	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
 
 
-#	-v ~/../shared/.Xilinx/100G.lic:/home/vivado-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
+#	-v ~/../shared/.Xilinx/100G.lic:/home/radiant-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
 
 
 #	-v /dev/bus/usb:/dev/bus/usb \
 #	-v /dev/bus/usb/003:/dev/bus/usb/003 \
 #	--mac-address="aa:bb:cc:dd:ee:ff" \
-#	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
-# 	-v ~/.Xilinx/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+#	-v ~/.Xilinx/100G.lic:/home/radiant/.Xilinx/Xilinx.lic:ro \
+# 	-v ~/.Xilinx/Xilinx.lic:/home/radiant/.Xilinx/Xilinx.lic:ro \
 #	--volume="/etc/machine-id:/etc/machine-id" \
 #	-u `id -u`:`id -g` \
 #	--net=host \
