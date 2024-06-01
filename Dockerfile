@@ -17,8 +17,11 @@ FROM ubuntu:22.04
 #
 ARG RADIANT_ZIP_HOST="http://localhost:8000"
 # without .zip suffix
-ARG RADIANT_ZIP_FILE="2023.1.0.43.3_Radiant_lin"
-ARG RADIANT_VERSION="2023.1"
+ARG RADIANT_ZIP_FILE="2023.2.0.38.1_Radiant_lin" 
+ARG UPDATE_ZIP_FILE="2023.2.1.288.0_Radiant_update_lin"
+#ARG RADIANT_VERSION="2023.1"
+ARG RADIANT_VERSION="2023.2.0.38.1"
+ARG UPDATE_VERSION="2023.2.1.288.0"
 
 # only available during build
 ARG DEBIAN_FRONTEND=noninteractive
@@ -52,7 +55,7 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-RUN  locale-gen --purge en_US.UTF-8
+RUN locale-gen --purge en_US.UTF-8
 RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
 
 #install dependences for:
@@ -136,17 +139,23 @@ WORKDIR /home/radiant
 #RUN mkdir -p /root/.Xilinx
 #RUN mkdir -p /home/radiant/.Xilinx
 
+RUN netstat -lt4n
+
 # download and run the install
 RUN echo "Downloading and extracting ${RADIANT_ZIP_FILE} from ${RADIANT_ZIP_HOST}" && \
   wget -O- ${RADIANT_ZIP_HOST}/${RADIANT_ZIP_FILE}.zip -q | \
   bsdtar xvf - && \
-  chmod +x 2023.1.0.43.3_Radiant_lin.run 
+  chmod +x ${RADIANT_VERSION}_Radiant_lin.run
 
-#RUN ./bin/lin64/check_systemlibrary_radiant.bash
+RUN echo "Downloading and extracting ${UPDATE_ZIP_FILE} from ${RADIANT_ZIP_HOST}" && \
+  wget -O- ${RADIANT_ZIP_HOST}/${UPDATE_ZIP_FILE}.zip -q | \
+  bsdtar xvf - && \
+  chmod +x ${UPDATE_VERSION}_Radiant_update.run
 
-#RUN chmod go+rwx /opt
+RUN ls -ald 2023*
 
-RUN ./2023.1.0.43.3_Radiant_lin.run --console --prefix=/opt/lattice --verbose
+RUN ./${RADIANT_VERSION}_Radiant_lin.run --console --prefix=/opt/lattice --verbose
+RUN ./${UPDATE_VERSION}_Radiant_update.run --console --prefix=/opt/lattice --verbose
 RUN bash /opt/lattice/bin/lin64/check_systemlibrary_radiant.bash
 RUN cat  check_systemlibrary.log | grep -e "is missing" | sed 's@[^\s]is missing@@' | sed 's@ i386@:i386@' | sed 's@\sin the system.*@@'
 
