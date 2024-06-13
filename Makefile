@@ -1,4 +1,4 @@
-VER=4.0.0
+VER=4.0.1
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
@@ -26,18 +26,29 @@ assert-gitconfig:
 
 # --user `id -u`:`id -g` is to match the container user to the host user, so if
 # files are written to the host directory, they have the correct ownership.
-run: guard-DISPLAY guard-USER assert-gitconfig
-	echo "Make run is not well maintained, did you mean make remote?"
-	exit
+run: #guard-DISPLAY guard-USER assert-gitconfig
+	docker --version | grep podman
+	if [ $$? -eq 0 ]; then
+		echo "Detected Podman"
+		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW"
+	else
+		echo "Assuming Docker"
+		export PODMAN_EXTRA_ARGS=
+	fi
+
+	echo $${PODMAN_EXTRA_ARGS}
+#	echo "Make run is not well maintained, did you mean make remote?"
+#	exit
 	docker run -ti --rm \
 	--name vivado-$(USER) \
 	--user `id -u`:`id -g` \
 	--cap-add=NET_ADMIN \
+	$${PODMAN_EXTRA_ARGS} \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
 	-e DISPLAY=$(DISPLAY) \
-	--network="host" \
+	--network=host \
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
 	-v $$PWD:/project-on-host \

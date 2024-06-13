@@ -192,8 +192,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
   locales autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
   pkg-config libtool libyaml-dev libftdi-dev libusb-1.0.0
 
-RUN curl -sL "https://nav.dl.sourceforge.net/project/openocd/openocd/0.12.0-rc2/openocd-0.12.0-rc2.tar.bz2" | tar xj
-RUN cd openocd-0.12.0-rc2 && ./configure --enable-ftdi && make install -j16
+RUN curl -sL "https://sourceforge.net/projects/openocd/files/openocd/0.12.0/openocd-0.12.0.tar.bz2" | tar xj
+#RUN curl -sL "https://nav.dl.sourceforge.net/project/openocd/openocd/0.12.0-rc2/openocd-0.12.0-rc2.tar.bz2" | tar xj
+RUN cd openocd-0.12.0 && ./configure --enable-ftdi && make install -j16
 
 # OpenOCD VexRiscv fork
 RUN git clone https://github.com/SpinalHDL/openocd_riscv openocd_vexriscv && cd openocd_vexriscv && \
