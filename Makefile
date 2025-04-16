@@ -1,4 +1,4 @@
-VER=2022.10
+VER=2023.2
 
 .ONESHELL:
 
@@ -42,13 +42,13 @@ remote:
 	# Launch the container
 	docker run -it --rm \
 	-u `id -u`:`id -g` \
-	--mac-address="00:30:48:29:6b:04" \
+	--mac-address="b4:2e:99:6a:d9:f0" \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
 	-v $$PWD:/home/vivado/project \
-	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+	-v ~/.Xilinx/UL3524.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /home/vivado/project \
 	--device-cgroup-rule 'c 188:* rmw' \
@@ -62,6 +62,7 @@ remote:
 
 	rm -rf $${X11TMPDIR}
 
+#	--mac-address="00:30:48:29:6b:04" \
 
 #	-v /dev/bus/usb:/dev/bus/usb \
 #	-v /dev/bus/usb/003:/dev/bus/usb/003 \

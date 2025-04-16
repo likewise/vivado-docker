@@ -1,4 +1,6 @@
-FROM ubuntu:18.04
+FROM ubuntu:focal
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN=true
 
 #AS vivado:2020.2
 
@@ -20,9 +22,11 @@ MAINTAINER Leon Woestenberg <leon@sidebranch.com>
 # docker build --network=host --build-arg VIVADO_TAR_HOST=http://host:port -t vivado .
 #
 ARG VIVADO_TAR_HOST="http://localhost:8000"
-ARG VIVADO_TAR_FILE="Xilinx_Unified_2020.2_1118_1232"
-ARG VIVADO_VERSION="2020.2"
+ARG VIVADO_TAR_FILE="FPGAs_AdaptiveSoCs_Unified_2023.2_1013_2256"
+ARG VIVADO_VERSION="2023.2"
 ARG PETALINUX_RUN_FILE="petalinux-v2020.2-final-installer.run"
+
+#https://github.com/esnet/xilinx-tools-docker/blob/main/Dockerfile
 
 # Running the Docker image in a Docker container
 #
@@ -93,8 +97,29 @@ RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}"
 
 # copy installation configuration for Vitis
 COPY install_config.txt /
-RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt && \
+
+#RUN /${VIVADO_TAR_FILE}/xsetup --batch ConfigGen -p 'Vivado' -e 'Vivado ML Enterprise'
+#RUN cat /root/.Xilinx/install_config.txt
+#RUN exit 1
+
+RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,XilinxEULA --batch Install --config install_config.txt && \
   rm -rf ${VIVADO_TAR_FILE}*
+
+# ONLY REQUIRED FOR Ubuntu 20.04 (focal) but harmless on other distros
+# Hack: replace the stock libudev1 with a newer one from Ubuntu 22.04 (jammy) to avoid segfaults when invoked
+#       from the flexlm license code within Vivado
+
+RUN apt-get install -y --no-install-recommends ca-certificates
+
+RUN \
+  if [ "$(lsb_release --short --release)" = "20.04" ] ; then \
+    wget -q -P /tmp https://security.ubuntu.com/ubuntu/pool/main//s/systemd/libudev1_249.11-0ubuntu3_amd64.deb && \
+    ls -ald /tmp/*.deb && \
+    dpkg-deb --fsys-tarfile /tmp/libudev1_*.deb | tar -tvf - && \
+    dpkg-deb --fsys-tarfile /tmp/libudev1_*.deb | \
+      tar -C /opt/Xilinx/Vivado/${VIVADO_VERSION}/lib/lnx64.o/Ubuntu/20 --strip-components=4 -xavf - ./usr/lib/x86_64-linux-gnu/ && \
+    rm /tmp/libudev1_*.deb ; \
+  fi
 
 #RUN Xilinx_Unified_2020.2
 
@@ -103,6 +128,7 @@ RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /root/.p
 
 #copy in the license file (root)
 RUN mkdir -p /root/.Xilinx
+
 # We do not want our license file to be in the image, we mount it during run.
 #COPY Xilinx.lic /root/.Xilinx/
 
@@ -148,28 +174,28 @@ COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
 USER vivado
 WORKDIR /home/vivado
 
-RUN echo "Downloading and extracting ${PETALINUX_RUN_FILE} from ${VIVADO_TAR_HOST}" && \
-  wget ${VIVADO_TAR_HOST}/${PETALINUX_RUN_FILE} -q
+#RUN echo "Downloading and extracting ${PETALINUX_RUN_FILE} from ${VIVADO_TAR_HOST}" && \
+#  wget ${VIVADO_TAR_HOST}/${PETALINUX_RUN_FILE} -q
 
-USER root
-RUN chmod +x ${PETALINUX_RUN_FILE}
+#USER root
+#RUN chmod +x ${PETALINUX_RUN_FILE}
 
 # This list is taken from 
-RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 && \
-apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-iproute2 gawk python3 python build-essential gcc git make net-tools libncurses5-dev tftpd zlib1g-dev libssl-dev flex bison libselinux1 gnupg \
-wget git-core diffstat chrpath socat xterm autoconf libtool tar unzip texinfo zlib1g-dev gcc-multilib automake zlib1g:i386 screen pax gzip cpio \
-python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3
+#RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 && \
+#apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+#iproute2 gawk python3 python build-essential gcc git make net-tools libncurses5-dev tftpd zlib1g-dev libssl-dev flex bison libselinux1 gnupg \
+#wget git-core diffstat chrpath socat xterm autoconf libtool tar unzip texinfo zlib1g-dev gcc-multilib automake zlib1g:i386 screen pax gzip cpio \
+#python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3
 
 #COPY plnx-env-setup.sh /tmp/
 #RUN chmod +x /tmp/plnx-env-setup.sh
 #RUN /tmp/plnx-env-setup.sh
 
-USER vivado
-WORKDIR /home/vivado
+#USER vivado
+#WORKDIR /home/vivado
 
-RUN /home/vivado/petalinux-accept-eula.sh /home/vivado/${PETALINUX_RUN_FILE} /home/vivado/petalinux-2020.2
-RUN rm -v ${PETALINUX_RUN_FILE}
+#RUN /home/vivado/petalinux-accept-eula.sh /home/vivado/${PETALINUX_RUN_FILE} /home/vivado/petalinux-2020.2
+#RUN rm -v ${PETALINUX_RUN_FILE}
 
 # We do not want our license file to be in the image, we mount it during run.
 #COPY Xilinx.lic .Xilinx/
@@ -192,14 +218,14 @@ RUN adduser --disabled-password --gecos '' vivado-docker-1002
 
 RUN echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/profile.d/vivado && \
 echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
-echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
+echo "source /opt/Xilinx/Vitis_HLS/${VIVADO_VERSION}/settings64.sh" >> /etc/profile.d/vivado && \
 echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" > /etc/bash.bashrc && \
 echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc &&\
-echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc && \
+echo "source /opt/Xilinx/Vitis_HLS/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc && \
 echo "#!/bin/sh" > /usr/local/bin/vivado_gui.sh && \
 echo "export LD_LIBRARY_PATH=/opt/Xilinx/DocNav/lib/" >> /usr/local/bin/vivado_gui.sh && \
 echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
-echo "source /opt/Xilinx/Vitis/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
+echo "source /opt/Xilinx/Vitis_HLS/${VIVADO_VERSION}/settings64.sh" >> /usr/local/bin/vivado_gui.sh && \
 echo "vivado" >> /usr/local/bin/vivado_gui.sh && \
 chmod +x /usr/local/bin/vivado_gui.sh
 
@@ -211,7 +237,7 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 RUN apt-get install -y dbus-x11
 RUN apt-get install -y udev usbutils
-RUN cd /opt/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
+RUN cd /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
 
 #RUN adduser vivado dialout
 RUN usermod -aG dialout vivado
@@ -219,7 +245,7 @@ RUN usermod -aG dialout vivado
 RUN python3 -m pip install --user -U pip setuptools
 
 # Ibex FuseSoC
-RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+RUN apt-get update -y && apt-get upgrade -y && apt-get update && apt-get install -y \
     autoconf bison build-essential clang-format cmake curl \
     doxygen flex g++ git golang lcov libelf1 libelf-dev libftdi1-2 \
     libftdi1-dev libncurses5 libssl-dev libudev-dev libusb-1.0-0 lsb-release \
@@ -227,26 +253,35 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
     python3-wheel srecord tree xsltproc zlib1g-dev xz-utils \
     srecord
 
-COPY --chown=vivado fusesoc-python-requirements.txt .
-RUN pip3 install -r fusesoc-python-requirements.txt
+#COPY --chown=vivado fusesoc-python-requirements.txt .
+#RUN pip3 install -r fusesoc-python-requirements.txt
 #RUN pip3 install Mako fusesoc markupsafe
 
 #COPY vivado.xml /home/vivado/.Xilinx/Vivado/2020.2/vivado.xml
 #RUN chown -R vivado:vivado /home/vivado/.Xilinx
 
 
+RUN apt-get update -y && apt-get upgrade -y && apt-get update && apt-get install -y \
+  unzip
+
 # Digilent (Arty) board files https://reference.digilentinc.com/reference/software/vivado/board-files
 # https://github.com/Digilent/vivado-boards/archive/master.zip
-RUN curl --output /tmp/master.zip -L https://github.com/Digilent/vivado-boards/archive/master.zip?_ga=2.203386514.2020720558.1643112254-1582227075.1643112254 && cd /tmp/ && unzip master.zip && \
-  cp -a vivado-boards-master/new/board_files/* /opt/Xilinx/Vivado/2020.2/data/boards/board_files/
+
+#RUN curl --output /tmp/master.zip -L https://github.com/Digilent/vivado-boards/archive/master.zip?_ga=2.203386514.2020720558.1643112254-1582227075.1643112254 && cd /tmp/ && unzip master.zip && \
+#  cp -a vivado-boards-master/new/board_files/* /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1003
 RUN adduser --disabled-password --gecos '' vivado-docker-1004
 RUN adduser --disabled-password --gecos '' vivado-docker-1005
 RUN adduser --disabled-password --gecos '' vivado-docker-1006
 
+
+
 USER vivado
 WORKDIR /home/vivado
+
+RUN mkdir -p .Xilinx/Vivado
+RUN echo "enable_beta_device *" >>.Xilinx/Vivado/Vivado_init.tcl
 
 #COPY --chown=vivado fusesoc-python-requirements.txt .
 #RUN pip3 install --user -U -r fusesoc-python-requirements.txt
