@@ -174,12 +174,15 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 #  dpkg -i drawio-amd64-20.3.0.deb && rm drawio-amd64-20.3.0.deb
 
 USER vivado
+
+RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/Vivado/2021.2/bin/vivado
+
 WORKDIR /home/vivado
 
-# Install 'pipelinec' executable
-RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
-  echo "export PATH=$PATH:PipelineC/src" >> /home/vivado/.bashrc
-
+## Install 'pipelinec' executable
+#RUN git clone https://github.com/JulianKemmerer/PipelineC.git && \
+#  echo "export PATH=$PATH:PipelineC/src" >> /home/vivado/.bashrc
+#
 #RUN curl -O- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzvf && \
-RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzv
-RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
+#RUN wget -qO- https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2022-10-26/oss-cad-suite-linux-x64-20221026.tgz | tar xzv
+#RUN sed -i 's@OSS_CAD_SUITE_PATH = .*@OSS_CAD_SUITE_PATH = "/home/vivado/oss-cad-suite"@' PipelineC/src/OPEN_TOOLS.py
