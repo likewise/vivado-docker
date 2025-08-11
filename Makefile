@@ -133,6 +133,8 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
+	-v /home/leon/sandbox/vivado-docker/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
+	--group-add keep-groups \
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
