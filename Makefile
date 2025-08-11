@@ -109,6 +109,9 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	echo $${PODMAN_EXTRA_ARGS}
 
+#	--net=bridge \
+#	--mac-address="00:30:48:29:6b:04" \
+#	--net=host \
 
 	# Launch the container
 	docker run -it --rm \
