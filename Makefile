@@ -138,6 +138,14 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
 	-v /home/leon/sandbox/vivado-docker/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
 	--group-add keep-groups \
+	--device-cgroup-rule 'c 188:* rmw' \
+	--device-cgroup-rule 'c 189:* rmw' \
+	--device /dev/ttyUSB0:/dev/ttyUSB0:rw \
+	--device /dev/ttyUSB1:/dev/ttyUSB1:rw \
+	--device /dev/ttyUSB2:/dev/ttyUSB2:rw \
+	--device /dev/ttyUSB3:/dev/ttyUSB3:rw \
+	--device /dev/bus/usb:/dev/bus/usb:rw \
+	--security-opt label=disable \
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
