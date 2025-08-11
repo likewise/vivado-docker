@@ -1,4 +1,4 @@
-VER=4.0.1
+VER=4.0.2
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
@@ -52,9 +52,10 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
 	-v $$PWD:/project-on-host \
-	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-w /project-on-host \
 	vivado:$(VER)
+
+#	-v $$PWD/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 
 remote: guard-DISPLAY guard-USER assert-gitconfig
 	# Prepare target env
@@ -88,13 +89,15 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	# not sure why this is ALSO needed
 	setfacl -R -m user:1000:rwx $${X11TMPDIR}
 
+
+#	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 #	-v ~/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 #	-u `id -u`:`id -g` \
 # replaced by -e HOST_USER_ID what is picked up by entrypoint.sh to
 # create a matching user in the container, on the fly, and become that user
 #--user `id -u`:`id -g` \
 #	--mac-address="00:30:48:29:6b:04" \
-
+#	--mac-address="00:30:48:29:6b:04" \
 	find $${X11TMPDIR}
 
 # adapt for root-less podman vs root-full docker
@@ -130,12 +133,11 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v $$PWD:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-w /project-on-host \
-	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
-	-v ~/../shared/wireguard:/etc/wireguard:ro \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
 	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
+	-v /home/leon/sandbox/vivado-docker/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 	-v /home/leon/sandbox/vivado-docker/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
 	--group-add keep-groups \
 	--device-cgroup-rule 'c 188:* rmw' \
@@ -150,15 +152,10 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	rm -rf $${X11TMPDIR}
 
-#	--device-cgroup-rule 'c 188:* rmw' \
-#	--device-cgroup-rule 'c 189:* rmw' \
+#
 #	-v /sys/devices:/sys/devices:ro \
 #	-v /dev:/dev:rw \
 
-#	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
-#	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
-#	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
-#	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
 
 
 #	-v ~/../shared/.Xilinx/100G.lic:/home/vivado-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
