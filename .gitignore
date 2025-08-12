@@ -1,2 +1,3 @@
 *.lic
+*.secret
 wireguard/*.conf
