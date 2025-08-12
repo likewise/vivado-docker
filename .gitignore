@@ -1,3 +1,5 @@
 *.lic
 *.secret
 wireguard/*.conf
+vivado*.jou
+vivado*.log

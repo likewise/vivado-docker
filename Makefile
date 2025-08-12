@@ -1,4 +1,11 @@
-VER=4.0.2
+VER=4.1.0
+
+# Branch 4.1
+# Podman
+# Vivado Web Installer
+# Release 4.1.0:
+# Ubuntu 22.04
+# Vivado Enterprise Edition 2025.1
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.

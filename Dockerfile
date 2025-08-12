@@ -18,8 +18,9 @@ FROM ubuntu:22.04
 ARG VIVADO_TAR_HOST="http://localhost:8000"
 # without .tar(.gz) suffix
 #ARG VIVADO_TAR_FILE="Xilinx_Unified_2021.2_1021_0703"
-ARG VIVADO_TAR_FILE="Xilinx_Unified_2023.1_0507_1903"
-ARG VIVADO_VERSION="2023.1"
+#ARG VIVADO_TAR_FILE="Xilinx_Unified_2023.1_0507_1903"
+ARG VIVADO_BIN_FILE="FPGAs_AdaptiveSoCs_Unified_SDI_2025.1_0530_0145_Lin64.bin"
+ARG VIVADO_VERSION="2025.1"
 #ARG PETALINUX_RUN_FILE="petalinux-v2022.2-10141622-installer.run"
 
 # only available during build
@@ -33,7 +34,6 @@ ARG DEBCONF_NONINTERACTIVE_SEEN=true
 #
 # The current directory on the host is mounted as read-write in the container.
 # The license file of the host is mounted read-only. See the --mac-address= flag for docker run.
-
 
 # Set BASH as the default shell
 RUN echo "dash dash/sh boolean false" | debconf-set-selections
@@ -54,7 +54,7 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-RUN  locale-gen --purge en_US.UTF-8
+RUN locale-gen --purge en_US.UTF-8
 RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
 
 #install dependences for:
@@ -77,6 +77,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
   libgtk3.0 \
   libtinfo5 \
   git \
+  expect \
   \
   expect gawk net-tools xterm autoconf libtool \
   texinfo zlib1g-dev gcc-multilib libncurses5-dev \
@@ -124,7 +125,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y
 USER vivado
 WORKDIR /home/vivado
 
-# copy in the license file
+# create user settings directory for Xilinx, i.e. where to copy in the license file etc.
 RUN mkdir -p .Xilinx
 
 COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
@@ -132,27 +133,34 @@ COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
 #RUN /${VIVADO_TAR_FILE}/xsetup --agree 3rdPartyEULA,XilinxEULA --batch Install --config install_config.txt && \
 #  rm -rf ${VIVADO_TAR_FILE}*
 
-#copy in the license file (root)
-#RUN mkdir -p /root/.Xilinx
-RUN mkdir -p /home/vivado/.Xilinx
+# download and run the full installer
+#RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
+#  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.bin -q | \
+#  tar xvf -
 
-# download and run the install
-RUN echo "Downloading and extracting ${VIVADO_TAR_FILE} from ${VIVADO_TAR_HOST}" && \
-  wget -O- ${VIVADO_TAR_HOST}/${VIVADO_TAR_FILE}.tar -q | \
-  tar xvf -
+# download and run the full installer
+RUN echo "Downloading and extracting ${VIVADO_BIN_FILE} from ${VIVADO_TAR_HOST}" && \
+  wget ${VIVADO_TAR_HOST}/${VIVADO_BIN_FILE}
 
-# If the following fails for a newer version of Xilinx, because of new configuration
+RUN chmod +x ${VIVADO_BIN_FILE}
+RUN ./${VIVADO_BIN_FILE} --keep --noexec --target ./web-installer
+
+WORKDIR /home/vivado/web-installer
+COPY authtokengen.expect .
+COPY email-password.secret .
+COPY install_config.txt .
+RUN ./authtokengen.expect `cat email-password.secret | tr '\n' ' '`
+RUN rm -f authtokengen.expect email-password.secret
+RUN ./xsetup -a XilinxEULA,3rdPartyEULA --batch Install --config install_config.txt
+WORKDIR /home/vivado
+RUN rm -rf ./${VIVADO_BIN_FILE} web-installer
+
+# If the above fails for a newer version of Xilinx, because of new configuration
 # options, look for the latest image and manually create a new install_config.txt.
 # docker image ls -a
 # docker run -ti <latest-image> /bin/bash
 # And then inside the container run:
 # ./xsetup -b ConfigGen
-
-# copy installation configuration for Vivado
-COPY install_config.txt /
-RUN cp -a /install_config.txt .
-RUN ${VIVADO_TAR_FILE}/xsetup --agree XilinxEULA,3rdPartyEULA  --batch Install --config install_config.txt && \
-  rm -rf ${VIVADO_TAR_FILE}*
 
 USER root
 WORKDIR /root

@@ -1,0 +1,24 @@
+#!/usr/bin/env expect
+
+# Automates fetching an authentication token for the web installer
+# given a (secret) text file with the AMD/Xilinx account email address and password
+#
+# https://adaptivesupport.amd.com/s/question/0D5KZ00000hbQCx0AM/can-we-generate-authtokengen-in-noninteractive-mode?language=en_US
+
+set timeout -1
+
+# Read the input parameters
+set user [lindex $argv 0]
+set passw [lindex $argv 1]
+# Check if all were provided
+if { $user == "" || $passw == "" } {
+  puts "Usage: <user> <passw> \n"
+  exit 1
+}
+spawn ./xsetup -b AuthTokenGen -x
+expect "E-mail Address:"
+send "$user\r"
+expect "Password:"
+send "$passw\r"
+expect eof
+exit 0
