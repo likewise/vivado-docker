@@ -12,6 +12,10 @@ VER=4.1.0
 
 .ONESHELL:
 
+# --cgroup-manager cgroupfs to work-around Debian 12 problem of
+# --runtime=/usr/bin/runc with apt-get install runc
+# 
+# sd-bus call: Interactive authentication required.: Permission denied
 build:
 	docker build --build-arg=TERM="linux" --network=host -t vivado:$(VER) .
 

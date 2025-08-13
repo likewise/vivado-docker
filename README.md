@@ -153,3 +153,18 @@ This one is not available:
 compat-openssl10 \
 ```
 See https://adaptivesupport.amd.com/s/question/0D54U00008vYLcRSAW/unable-to-install-compatopenssl10-in-ubuntu-2404-vm?language=en_US
+
+### Issue Debian 12 no systemd user session available
+
+docker --runtime=/usr/bin/runc build --build-arg=TERM="linux" --network=host -t vivado:4.1.0 .
+Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.
+WARN[0000] The cgroupv2 manager is set to systemd but there is no systemd user session available 
+WARN[0000] For using systemd, you may need to login using an user session 
+WARN[0000] Alternatively, you can enable lingering with: `loginctl enable-linger 1000` (possibly as root) 
+WARN[0000] Falling back to --cgroup-manager=cgroupfs 
+
+Changing /etc/container/libpod.conf from crun to runc did not make a difference, nor did any suggestions.
+
+This worked (but is a work-around?)
+
+systemctl --user start dbus

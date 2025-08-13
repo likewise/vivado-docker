@@ -168,7 +168,7 @@ WORKDIR /root
 # Install Xilinx cable drivers
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   udev usbutils
-RUN cd /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
+RUN cd /opt/Xilinx/${VIVADO_VERSION}/Vivado/data/xicom/cable_drivers/lin64/install_script/install_drivers && ./install_drivers
 
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
   dbus-x11 
@@ -202,7 +202,7 @@ RUN adduser --disabled-password --gecos '' vivado-docker-1003
 # Workaround for https://support.xilinx.com/s/article/000034450
 # https://adaptivesupport.amd.com/s/article/000034450?language=en_US
 # https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
-RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/Vivado/${VIVADO_VERSION}/bin/vivado
+RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/${VIVADO_VERSION}/Vivado/bin/vivado
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1004
 RUN adduser --disabled-password --gecos '' vivado-docker-1005
