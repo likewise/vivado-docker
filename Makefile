@@ -14,7 +14,7 @@ VER=4.1.0
 
 # --cgroup-manager cgroupfs to work-around Debian 12 problem of
 # --runtime=/usr/bin/runc with apt-get install runc
-# 
+#
 # sd-bus call: Interactive authentication required.: Permission denied
 build:
 	docker build --build-arg=TERM="linux" --network=host -t vivado:$(VER) .
@@ -98,7 +98,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	# inspired by https://jtreminio.com/blog/running-docker-containers-as-current-host-user/
 	chmod ugo+rwx -R $${X11TMPDIR}
 	# not sure why this is ALSO needed
-	setfacl -R -m user:1000:rwx $${X11TMPDIR}
+	/usr/bin/setfacl -R -m user:1000:rwx $${X11TMPDIR}
 
 
 #	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
@@ -148,21 +148,23 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
-	-v /home/leon/sandbox/vivado-docker/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
-	-v /home/leon/sandbox/vivado-docker/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
+	-v $$PWD/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
 	--group-add keep-groups \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
-	--device /dev/ttyUSB0:/dev/ttyUSB0:rw \
-	--device /dev/ttyUSB1:/dev/ttyUSB1:rw \
-	--device /dev/ttyUSB2:/dev/ttyUSB2:rw \
-	--device /dev/ttyUSB3:/dev/ttyUSB3:rw \
-	--device /dev/bus/usb:/dev/bus/usb:rw \
 	--security-opt label=disable \
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
 
+#
+#	--device /dev/bus/usb:/dev/bus/usb:rw \
+#	-v /home/leon/sandbox/vivado-docker/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
+#	--device /dev/ttyUSB0:/dev/ttyUSB0:rw \
+#	--device /dev/ttyUSB1:/dev/ttyUSB1:rw \
+#	--device /dev/ttyUSB2:/dev/ttyUSB2:rw \
+#	--device /dev/ttyUSB3:/dev/ttyUSB3:rw \
+#
 #
 #	-v /sys/devices:/sys/devices:ro \
 #	-v /dev:/dev:rw \

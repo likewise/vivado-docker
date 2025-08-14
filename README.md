@@ -4,6 +4,8 @@ Vivado installed into a Docker image
 
 ## Build prerequisites
 
+sudo apt-get install xauth acl
+
 Docker or Podman.
 
 The Dockerfile will try to download the Vivado installer from a (local)

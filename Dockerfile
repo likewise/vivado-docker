@@ -193,7 +193,7 @@ USER root
 WORKDIR /root
 
 # use double quotes so that the variables get expanded during docker build
-RUN echo "source /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh" >> /etc/bash.bashrc
+RUN echo "source /opt/Xilinx/${VIVADO_VERSION}/Vivado/settings64.sh" >> /etc/bash.bashrc
 
 RUN adduser --disabled-password --gecos '' vivado-docker-1001
 RUN adduser --disabled-password --gecos '' vivado-docker-1002
@@ -248,6 +248,18 @@ USER vivado-docker-1013
 RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
 
 WORKDIR /project-on-host/
+
+USER root
+WORKDIR /root
+
+# Yocto
+RUN sudo apt-get install -y \
+build-essential chrpath cpio debianutils diffstat file gawk gcc git iputils-ping libacl1 liblz4-tool locales python3 python3-git python3-jinja2 python3-pexpect python3-pip python3-subunit socat texinfo unzip wget xz-utils zstd
+
+
+USER vivado
+WORKDIR /project-on-host/
+
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
