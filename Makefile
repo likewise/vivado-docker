@@ -9,6 +9,7 @@ VER=4.1.0
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
+mkfile_path := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
 .ONESHELL:
 
@@ -41,7 +42,7 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 	docker --version | grep podman
 	if [ $$? -eq 0 ]; then
 		echo "Detected Podman"
-		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW"
+		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW,NET_ADMIN"
 	else
 		echo "Assuming Docker"
 		export PODMAN_EXTRA_ARGS=
@@ -69,6 +70,7 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 #	-v $$PWD/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 
 remote: guard-DISPLAY guard-USER assert-gitconfig
+
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="vivado-container"
@@ -126,7 +128,9 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 #	--net=bridge \
 #	--mac-address="00:30:48:29:6b:04" \
 #	--net=host \
-
+#
+#	-e XAUTHORITY=/tmp/.Xauthority2 \
+#
 	# Launch the container
 	docker run -it --rm \
 	--name vivado-$(USER) \
@@ -141,18 +145,20 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
-	-v $$PWD:/project-on-host \
+	-v $${PWD}:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
+	--add-host $${CONTAINER_HOSTNAME}:127.0.0.1 \
 	-w /project-on-host \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
 	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
-	-v $$PWD/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
+	-v $(mkfile_path)/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
 	--group-add keep-groups \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
 	--security-opt label=disable \
+	--expose 14500 \
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}

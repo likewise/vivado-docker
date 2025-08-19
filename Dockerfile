@@ -26,7 +26,6 @@ ARG VIVADO_VERSION="2025.1"
 # only available during build
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEBCONF_NONINTERACTIVE_SEEN=true
-
 # Running the Docker image in a Docker container
 #
 # docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
@@ -253,12 +252,34 @@ USER root
 WORKDIR /root
 
 # Yocto
-RUN sudo apt-get install -y \
+RUN apt-get install -y \
 build-essential chrpath cpio debianutils diffstat file gawk gcc git iputils-ping libacl1 liblz4-tool locales python3 python3-git python3-jinja2 python3-pexpect python3-pip python3-subunit socat texinfo unzip wget xz-utils zstd
 
+# xpra
+RUN apt-get install -y \
+dialog
+
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
+keyboard-configuration
+
+RUN mkdir -p /run/user/1000/xpra
+RUN chown vivado:vivado /run/user/1000/xpra
+
+#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
+#xpra
+#xfce4
+
+RUN wget -O "/usr/share/keyrings/xpra.asc" https://xpra.org/xpra.asc
+RUN cd /etc/apt/sources.list.d && wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra.sources
+RUN DEBIAN_FRONTEND=noninteractive apt update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q xpra
 
 USER vivado
 WORKDIR /project-on-host/
+
+RUN xpra --version
 
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh

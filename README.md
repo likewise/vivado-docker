@@ -49,6 +49,21 @@ LD_LIBRARY_PATH=/opt/Xilinx/Vivado/2023.1/lib/lnx64.o /opt/Xilinx/Vivado/2023.1/
 
 LD_LIBRARY_PATH=/opt/Xilinx/Vivado/2023.1/lib/lnx64.o strace /opt/Xilinx/Vivado/2023.1/bin/unwrapped/lnx64.o/hw_server -L- -e "set always-open-jtag 1"
 
+# xpra
+
+XPRA started working when not setting the XAUTHORITY environment variable inside the container
+
+server:
+XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=vivado --terminate-children=yes --exit-with-children=yes --daemon=no --pulseaudio=no --webcam=no --no-tray --mdns=no --html=on --speaker=off --microphone=off --enable-pings --printing=no
+XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=xterm --terminate-children=yes --exit-with-children=yes --daemon=no --pulseaudio=no --webcam=no --no-tray --mdns=no --html=on --speaker=off --microphone=off --enable-pings --printing=no
+
+web browser (no anti-aliasing):
+http://<ip>:<port>/connect.html
+Advanced Options=> width 3840
+
+client:
+xpra attach tcp://localhost:14444 --dpi=144
+
 # Linux 6.2.13/14 kernel issue with Vivado
 
 https://jia.je/software/2023/05/06/linux-regression-vivado-en/
@@ -170,3 +185,5 @@ Changing /etc/container/libpod.conf from crun to runc did not make a difference,
 This worked (but is a work-around?)
 
 systemctl --user start dbus
+
+XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=vivado --terminate-children=yes --exit-with-children=yes --daemon=no --pulseaudio=no --webcam=no --no-tray --mdns=no --html=on --speaker=off --microphone=off --enable-pings --printing=no
