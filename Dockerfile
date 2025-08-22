@@ -267,20 +267,38 @@ keyboard-configuration
 RUN mkdir -p /run/user/1000/xpra
 RUN chown vivado:vivado /run/user/1000/xpra
 
-#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
-#xpra
-#xfce4
-
+# xpra
 RUN wget -O "/usr/share/keyrings/xpra.asc" https://xpra.org/xpra.asc
-RUN cd /etc/apt/sources.list.d && wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra.sources
+# xpra LTS v5.x (remove "-lts" suffix to get latest non LTS release)
+RUN cd /etc/apt/sources.list.d && wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra-lts.sources
 RUN DEBIAN_FRONTEND=noninteractive apt update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q xpra
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
+xpra \
+gnome-terminal
+
+# SpinalHDL
+RUN DEBIAN_FRONTEND=noninteractive \
+apt-get update
+RUN DEBIAN_FRONTEND=noninteractive \
+apt-get install -y -qq \
+apt-transport-https \
+curl \
+gnupg
+
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian /" > /etc/apt/sources.list.d/sbt_old.list
+RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/scalasbt-release.gpg --import
+RUN chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
+RUN DEBIAN_FRONTEND=noninteractive \
+apt-get update
+RUN DEBIAN_FRONTEND=noninteractive \
+apt-get install -y -qq \
+sbt
+
+RUN rm -rf /home/vivado/.Xilinx/wi_authentication_key /home/vivado/.Xilinx/xinstall
 
 USER vivado
 WORKDIR /project-on-host/
-
-RUN xpra --version
-
 
 #COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 #ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

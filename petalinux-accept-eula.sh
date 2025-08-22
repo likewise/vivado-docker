@@ -1,4 +1,10 @@
 #!/usr/bin/expect
+
+
+#Press Enter to display the license agreements
+#Do you accept Xilinx End User License Agreement? [y/N] > y
+#Do you accept Third Party End User License Agreement? [y/N] > y
+
 set timeout -1
 set install_dir [lindex $argv 1]
 set installer [lindex $argv 0]
@@ -29,6 +35,5 @@ expect {
 }
 
 set timeout -1
-expect "INFO: Checking PetaLinux installer integrity..."
-expect "INFO: PetaLinux SDK has been installed"
+expect "INFO: PetaLinux SDK has been successfully set up and is ready to be used."
 #interact

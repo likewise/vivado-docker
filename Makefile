@@ -129,11 +129,11 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 #	--mac-address="00:30:48:29:6b:04" \
 #	--net=host \
 #
-#	-e XAUTHORITY=/tmp/.Xauthority2 \
+#	--name vivado-$(USER) \
 #
 	# Launch the container
 	docker run -it --rm \
-	--name vivado-$(USER) \
+	--name vivado-`basename $${PWD}` \
 	--cap-add=NET_ADMIN \
 	--net=host \
 	--user `id -u`:`id -g` \
@@ -148,17 +148,21 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v $${PWD}:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
 	--add-host $${CONTAINER_HOSTNAME}:127.0.0.1 \
+	\
 	-w /project-on-host \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
 	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
 	-v $(mkfile_path)/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
+	-e XILINXD_LICENSE_FILE=2100@3.64.111.145 \
+	\
 	--group-add keep-groups \
 	--device-cgroup-rule 'c 188:* rmw' \
 	--device-cgroup-rule 'c 189:* rmw' \
 	--security-opt label=disable \
 	--expose 14500 \
+	\
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}

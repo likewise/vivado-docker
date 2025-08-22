@@ -19,7 +19,13 @@ Sometimes `--bind 127.0.0.1` is needed in addition to this.
 
 ## Build instructions
 
-Run `make build` to create the container image.
+Run `make build` to create the container image, however:
+
+- for Vivado web installation based approaches, you first need to create a file
+called "email-password.secret" here containing your AMD/Xilinx account email
+address on the first line, and password on the second line, as input to the
+automated web installer. See the Makefile, Dockerfile and authtokengen.expect
+for how your secret is treated.
 
 ## Running
 
@@ -54,8 +60,8 @@ LD_LIBRARY_PATH=/opt/Xilinx/Vivado/2023.1/lib/lnx64.o strace /opt/Xilinx/Vivado/
 XPRA started working when not setting the XAUTHORITY environment variable inside the container
 
 server:
-XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=vivado --terminate-children=yes --exit-with-children=yes --daemon=no --pulseaudio=no --webcam=no --no-tray --mdns=no --html=on --speaker=off --microphone=off --enable-pings --printing=no
-XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=xterm --terminate-children=yes --exit-with-children=yes --daemon=no --pulseaudio=no --webcam=no --no-tray --mdns=no --html=on --speaker=off --microphone=off --enable-pings --printing=no
+#XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=vivado --terminate-children=yes --exit-with-children=yes --daemon=no --audio=no --webcam=no --no-tray --mdns=no --html=on --enable-pings --printing=no
+XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=gnome-terminal --terminate-children=yes --exit-with-children=no --daemon=no --audio=no --webcam=no --no-tray --mdns=no --html=on --enable-pings --printing=no
 
 web browser (no anti-aliasing):
 http://<ip>:<port>/connect.html
@@ -185,5 +191,3 @@ Changing /etc/container/libpod.conf from crun to runc did not make a difference,
 This worked (but is a work-around?)
 
 systemctl --user start dbus
-
-XAUTHORITY= xpra start --bind-tcp=0.0.0.0:14500 --start-child-after-connect=vivado --terminate-children=yes --exit-with-children=yes --daemon=no --pulseaudio=no --webcam=no --no-tray --mdns=no --html=on --speaker=off --microphone=off --enable-pings --printing=no
