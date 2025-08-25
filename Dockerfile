@@ -272,8 +272,8 @@ RUN wget -O "/usr/share/keyrings/xpra.asc" https://xpra.org/xpra.asc
 # xpra LTS v5.x (remove "-lts" suffix to get latest non LTS release)
 RUN cd /etc/apt/sources.list.d && wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra-lts.sources
 RUN DEBIAN_FRONTEND=noninteractive apt update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
-xpra \
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+xpra-x11 \
 gnome-terminal
 
 # SpinalHDL
@@ -295,7 +295,12 @@ RUN DEBIAN_FRONTEND=noninteractive \
 apt-get install -y -qq \
 sbt
 
+# @TODO move up to just after Vivado installation
 RUN rm -rf /home/vivado/.Xilinx/wi_authentication_key /home/vivado/.Xilinx/xinstall
+
+RUN DEBIAN_FRONTEND=noninteractive \
+apt-get install -y -qq \
+python3-yaml
 
 USER vivado
 WORKDIR /project-on-host/

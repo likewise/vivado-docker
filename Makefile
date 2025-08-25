@@ -1,4 +1,4 @@
-VER=4.1.0
+VER=4.1.1
 
 # Branch 4.1
 # Podman
@@ -79,21 +79,34 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	rm -rf $${X11TMPDIR}
 	export X11TMPDIR=`mktemp -d`
 	mkdir -p $${X11TMPDIR}/socket
-	touch $${X11TMPDIR}/Xauthority
 
-	# Get the DISPLAY slot
+	# Get the guest host DISPLAY slot
 	export DISPLAY_NUMBER=$$(echo $$DISPLAY | cut -d. -f1 | cut -d: -f2)
-	echo "DISPLAY_NUMBER=$$DISPLAY_NUMBER"
+	export XPORT=$$((6000 + $${DISPLAY_NUMBER}))
+	echo "DISPLAY_NUMBER=$$DISPLAY_NUMBER on guest host port $$XPORT"
 
-	# Extract current authentication cookie
-	export AUTH_COOKIE=$$(xauth list | grep "^$$(hostname)/unix:$${DISPLAY_NUMBER} " | awk '{print $$3}')
-	echo "AUTH_COOKIE=$$AUTH_COOKIE"
+	xauth list
 
-	# Create the new X Authority file
-	xauth -f $${X11TMPDIR}/Xauthority add $${CONTAINER_HOSTNAME}/unix:$${CONTAINER_DISPLAY} MIT-MAGIC-COOKIE-1 $${AUTH_COOKIE}
+	# Extract authentication cookie for the guest host DISPLAY
+	#export AUTH_COOKIE=$$(xauth list | grep -e "^$$(hostname)/unix:$${DISPLAY_NUMBER} " | awk '{print $$3}')
+	#echo "AUTH_COOKIE=$$AUTH_COOKIE (for unix:$${DISPLAY_NUMBER})"
+	#echo grep -e "^$$(hostname):$${DISPLAY_NUMBER} "
+	export AUTH_COOKIE=$$(xauth list | grep -e "^$$(hostname):$${DISPLAY_NUMBER} " | head -n1 | awk '{print $$3}')
+	echo "AUTH_COOKIE=$$AUTH_COOKIE (for ip:$${DISPLAY_NUMBER})"
+
+	: > "$$X11TMPDIR/Xauthority"
+
+	# Add a specific entry for what the container will request: vivado-container/unix:0
+	xauth -f "$$X11TMPDIR/Xauthority" add "$$CONTAINER_HOSTNAME/unix:$$CONTAINER_DISPLAY" MIT-MAGIC-COOKIE-1 "$$AUTH_COOKIE"
+	xauth nlist "$$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f "$$X11TMPDIR/Xauthority" nmerge -
+	
+	chmod 0644 "$$X11TMPDIR/Xauthority"
+	echo "$${X11TMPDIR}/Xauthority:"
+	xauth -f $${X11TMPDIR}/Xauthority list
 
 	# Proxy with the :0 DISPLAY
-	socat UNIX-LISTEN:$${X11TMPDIR}/socket/X$${CONTAINER_DISPLAY},fork TCP4:localhost:60$${DISPLAY_NUMBER} &
+	socat -d -d UNIX-LISTEN:"$X11TMPDIR/socket/X$$DISPLAY_NUMBER",unlink-early,mode=0777,fork TCP4:127.0.0.1:60$$DISPLAY_NUMBER &
+	export PIDOF_SOCAT=$$!
 
 	# if user id inside docker container differs from host id
 	# we need to provide access for this other user
@@ -130,10 +143,19 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 #	--net=host \
 #
 #	--name vivado-$(USER) \
+#	--name vivado-`basename $${PWD}` \
+#   container has X display on unix socket, we need to socat it
+#	-e DISPLAY=:$${CONTAINER_DISPLAY} \
+#   container has direct connection to host port (forwarded by SSH)
+#	-e DISPLAY=localhost:$${DISPLAY_NUMBER} \
+	-e DISPLAY=localhost:$${DISPLAY_NUMBER} \
 #
+#
+	echo CONTAINER_HOSTNAME=$${CONTAINER_HOSTNAME}
+
 	# Launch the container
 	docker run -it --rm \
-	--name vivado-`basename $${PWD}` \
+	--name vivado-$(USER) \
 	--cap-add=NET_ADMIN \
 	--net=host \
 	--user `id -u`:`id -g` \
@@ -141,7 +163,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-e HOST_USER_NAME=`id -nu $${USER}` \
 	-e HOST_USER_ID=`id -u $${USER}` \
 	-e HOST_GROUP_ID=`id -g $${USER}` \
-	-e DISPLAY=:$${CONTAINER_DISPLAY} \
+	-e DISPLAY=:$${DISPLAY_NUMBER} \
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
@@ -166,6 +188,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	vivado:$(VER) || echo ERROR $$?
 
 	rm -rf $${X11TMPDIR}
+	kill -9 $${PIDOF_SOCAT}
 
 #
 #	--device /dev/bus/usb:/dev/bus/usb:rw \
