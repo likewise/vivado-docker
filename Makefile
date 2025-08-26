@@ -1,4 +1,4 @@
-VER=4.1.1
+VER=4.1.2
 
 # Branch 4.1
 # Podman
@@ -105,7 +105,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	xauth -f $${X11TMPDIR}/Xauthority list
 
 	# Proxy with the :0 DISPLAY
-	socat -d -d UNIX-LISTEN:"$X11TMPDIR/socket/X$$DISPLAY_NUMBER",unlink-early,mode=0777,fork TCP4:127.0.0.1:60$$DISPLAY_NUMBER &
+	socat -d -d UNIX-LISTEN:"$$X11TMPDIR/socket/X$$DISPLAY_NUMBER",unlink-early,mode=0777,fork TCP4:127.0.0.1:60$$DISPLAY_NUMBER &
 	export PIDOF_SOCAT=$$!
 
 	# if user id inside docker container differs from host id
