@@ -17,11 +17,11 @@ FROM ubuntu:22.04
 #
 ARG RADIANT_ZIP_HOST="http://localhost:8000"
 # without .zip suffix
-ARG RADIANT_ZIP_FILE="2023.2.0.38.1_Radiant_lin" 
-ARG UPDATE_ZIP_FILE="2023.2.1.288.0_Radiant_update_lin"
-#ARG RADIANT_VERSION="2023.1"
-ARG RADIANT_VERSION="2023.2.0.38.1"
-ARG UPDATE_VERSION="2023.2.1.288.0"
+ARG RADIANT_ZIP_FILE="2025.1.0.39.0_Radiant_Programmer_lin" 
+#ARG UPDATE_ZIP_FILE="2023.2.1.288.0_Radiant_update_lin"
+#ARG RADIANT_VERSION="2025.1"
+ARG RADIANT_VERSION="2025.1.0.39.0"
+#ARG UPDATE_VERSION="2023.2.1.288.0"
 
 # only available during build
 ARG DEBIAN_FRONTEND=noninteractive
@@ -35,6 +35,10 @@ ARG DEBCONF_NONINTERACTIVE_SEEN=true
 # The current directory on the host is mounted as read-write in the container.
 # The license file of the host is mounted read-only. See the --mac-address= flag for docker run.
 
+# Update the apt-repo and upgrade and re-update while the apt-cache may be invalid
+RUN DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
+apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y -qq \
+  nano vim software-properties-common locales localepurge apt-utils
 
 # Set BASH as the default shell
 RUN echo "dash dash/sh boolean false" | debconf-set-selections
@@ -43,20 +47,16 @@ RUN DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true dpkg-reconfi
 ENV TZ=Europe/Amsterdam
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# If apt-get install were in a separate RUN instruction, then it would reuse a layer added by apt-get update,
-# which could had been created a long time ago.
-
-# Update the apt-repo and upgrade and re-update while the apt-cache may be invalid
-RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-  nano vim software-properties-common locales apt-utils
+RUN locale-gen "en_US.UTF-8"
+RUN update-locale LANG=en_US.UTF-8 LANGUAGE="en_US:en"
 
 # Generate and configure the character set encoding to en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-RUN locale-gen --purge en_US.UTF-8
-RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
+# If apt-get install were in a separate RUN instruction, then it would reuse a layer added by apt-get update,
+# which could had been created a long time ago.
 
 #install dependences for:
 # * downloading radiant: wget
@@ -65,7 +65,8 @@ RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
 # * CI git
 #
 # * PetaLinux: expect ... libncurses5-dev 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
+apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y -qq \
   wget \
   curl \
   libarchive-tools \
@@ -143,21 +144,22 @@ RUN netstat -lt4n
 
 # download and run the install
 RUN echo "Downloading and extracting ${RADIANT_ZIP_FILE} from ${RADIANT_ZIP_HOST}" && \
-  wget -O- ${RADIANT_ZIP_HOST}/${RADIANT_ZIP_FILE}.zip -q | \
-  bsdtar xvf - && \
-  chmod +x ${RADIANT_VERSION}_Radiant_lin.run
+wget -O- ${RADIANT_ZIP_HOST}/${RADIANT_ZIP_FILE}.zip -q | \
+bsdtar xvf - && \
+chmod +x ${RADIANT_ZIP_FILE}.run
 
-RUN echo "Downloading and extracting ${UPDATE_ZIP_FILE} from ${RADIANT_ZIP_HOST}" && \
-  wget -O- ${RADIANT_ZIP_HOST}/${UPDATE_ZIP_FILE}.zip -q | \
-  bsdtar xvf - && \
-  chmod +x ${UPDATE_VERSION}_Radiant_update.run
+#RUN echo "Downloading and extracting ${UPDATE_ZIP_FILE} from ${RADIANT_ZIP_HOST}" && \
+#  wget -O- ${RADIANT_ZIP_HOST}/${UPDATE_ZIP_FILE}.zip -q | \
+#  bsdtar xvf - && \
+#  chmod +x ${UPDATE_VERSION}_Radiant_update.run
 
-RUN ls -ald 2023*
+RUN ls -ald 2025*
 
-RUN ./${RADIANT_VERSION}_Radiant_lin.run --console --prefix=/opt/lattice --verbose
-RUN ./${UPDATE_VERSION}_Radiant_update.run --console --prefix=/opt/lattice --verbose
-RUN bash /opt/lattice/bin/lin64/check_systemlibrary_radiant.bash
-RUN cat  check_systemlibrary.log | grep -e "is missing" | sed 's@[^\s]is missing@@' | sed 's@ i386@:i386@' | sed 's@\sin the system.*@@'
+RUN ./${RADIANT_ZIP_FILE}.run --console --prefix=/opt/lattice --verbose
+#RUN find /opt | grep check
+#RUN ./${UPDATE_VERSION}_Radiant_update.run --console --prefix=/opt/lattice --verbose
+#RUN bash /opt/lattice/bin/lin64/check_systemlibrary_radiant.bash
+#RUN cat check_systemlibrary.log | grep -e "is missing" | sed 's@[^\s]is missing@@' | sed 's@ i386@:i386@' | sed 's@\sin the system.*@@'
 
 # If the following fails for a newer version of Xilinx, because of new configuration
 # options, look for the latest image and manually create a new install_config.txt.
@@ -178,7 +180,7 @@ WORKDIR /root
 RUN apt-cache search libtheora 
 
 RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 
-RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y -qq \
 libjpeg-dev \
 libieee1284-3 \
 libusb-0.1.4 \
@@ -221,10 +223,20 @@ libxau6:i386 \
 libx11-6:i386 \
 libxext6:i386 \
 libxft2:i386 \
-libxrender1:i386
+libxrender1:i386 \
+libegl1-mesa \
+libopengl0 \
+libxcb-cursor0
 
-RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
-iproute2
+
+
+RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y -qq \
+iproute2 usbutils
+
+RUN DEBIAN_FRONTEND=noninteractive dpkg --add-architecture i386 
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y -qq \
+strace libusb-1.0.0
 #
 ## Install Xilinx cable drivers
 #RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \

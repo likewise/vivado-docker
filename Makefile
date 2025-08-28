@@ -1,4 +1,7 @@
-VER=1.0.0
+VER=2.0.0
+
+# 1.0.0 is Radiant 2023
+# 2.0.0 is Radiant 2025
 
 # make build   = rebuild the container image
 # make remote  = run the container image on the host you are logged in to via SSH.
@@ -102,6 +105,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	docker run -it --rm \
 	--name radiant-$(USER) \
 	--cap-add=NET_ADMIN \
+	--cap-add=SYS_PTRACE \
 	--user `id -u`:`id -g` \
 	--net=host \
 	$${PODMAN_EXTRA_ARGS} \
@@ -114,16 +118,35 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v $${X11TMPDIR}/Xauthority:/tmp/.Xauthority \
 	-v $$PWD:/project-on-host \
 	--hostname $${CONTAINER_HOSTNAME} \
+	--add-host $${CONTAINER_HOSTNAME}:127.0.0.1 \
 	-w /project-on-host \
-	-v ~/../shared/.Xilinx/100G.lic:/home/radiant/.Xilinx/Xilinx.lic:ro \
-	-v ~/../shared/wireguard:/etc/wireguard:ro \
 	-v ~/.ssh:/home/radiant/.ssh:ro \
 	-v ~/.ssh:/home/radiant-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/radiant/.gitconfig:ro \
 	-v ~/.gitconfig:/home/radiant-docker-`id -u $${USER}`/.gitconfig:ro \
 	--device /dev/net/tun:/dev/net/tun:rmw \
-	--device-cgroup-rule 'c 10:* rmw' \
+	--group-add keep-groups \
+	--annotation run.oci.keep_original_groups=1 \
+        --device-cgroup-rule 'c 188:* rmw' \
+        --device-cgroup-rule 'c 189:* rmw' \
+        --device /dev/bus/usb:/dev/bus/usb:rw \
+	-v /sys/devices:/sys/devices:ro \
+	--security-opt label=disable \
 	radiant:$(VER) || echo ERROR $$?
+
+#	--device /dev/bus/usb/003/023:/dev/bus/usb/003/023:rw \
+#	--device-cgroup-rule 'c 188:* rmw' \
+	#--device-cgroup-rule 'c 189:* rmw' \
+
+#	--device-cgroup-rule 'c 188:* rmw' \
+#	--device-cgroup-rule 'c 10:* rmw' \
+#	-v /dev/ttyUSB0:/dev/ttyUSB0:rw \
+#	-v /dev/ttyUSB1:/dev/ttyUSB1:rw \
+#	-v /dev/ttyUSB2:/dev/ttyUSB2:rw \
+#	-v /dev/ttyUSB3:/dev/ttyUSB3:rw \
+#	-v /dev/bus/usb/003/020:/dev/bus/usb/003/020 \
+#	-v /sys/devices:/sys/devices:ro \
+#
 
 	rm -rf $${X11TMPDIR}
 
