@@ -142,9 +142,13 @@ WORKDIR /home/radiant
 
 RUN netstat -lt4n
 
+RUN bsdtar -h
+
+# -q --show-progress --progress=bar:force:noscroll
+
 # download and run the install
 RUN echo "Downloading and extracting ${RADIANT_ZIP_FILE} from ${RADIANT_ZIP_HOST}" && \
-wget -O- ${RADIANT_ZIP_HOST}/${RADIANT_ZIP_FILE}.zip -q | \
+wget -O- ${RADIANT_ZIP_HOST}/${RADIANT_ZIP_FILE}.zip | \
 bsdtar xvf - && \
 chmod +x ${RADIANT_ZIP_FILE}.run
 

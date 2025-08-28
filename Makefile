@@ -103,10 +103,14 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	# Launch the container
 	docker run -it --rm \
+	--runtime crun \
 	--name radiant-$(USER) \
 	--cap-add=NET_ADMIN \
 	--cap-add=SYS_PTRACE \
 	--user `id -u`:`id -g` \
+	--userns=keep-id \
+	--group-add `getent group dialout | cut -d: -f3` \
+	--group-add `getent group plugdev | cut -d: -f3` \
 	--net=host \
 	$${PODMAN_EXTRA_ARGS} \
 	-e HOST_USER_NAME=`id -nu $${USER}` \
@@ -124,15 +128,14 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v ~/.ssh:/home/radiant-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/radiant/.gitconfig:ro \
 	-v ~/.gitconfig:/home/radiant-docker-`id -u $${USER}`/.gitconfig:ro \
-	--device /dev/net/tun:/dev/net/tun:rmw \
-	--group-add keep-groups \
-	--annotation run.oci.keep_original_groups=1 \
-        --device-cgroup-rule 'c 188:* rmw' \
-        --device-cgroup-rule 'c 189:* rmw' \
-        --device /dev/bus/usb:/dev/bus/usb:rw \
+	--device /dev/bus/usb \
 	-v /sys/devices:/sys/devices:ro \
 	--security-opt label=disable \
 	radiant:$(VER) || echo ERROR $$?
+
+# --group-add keep-groups didn't work for me together with --userns=keep-id on Podman 3.x,
+# --group-add <gid> is a workaround
+# both require crun runtime
 
 #	--device /dev/bus/usb/003/023:/dev/bus/usb/003/023:rw \
 #	--device-cgroup-rule 'c 188:* rmw' \
