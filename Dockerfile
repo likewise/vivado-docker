@@ -152,6 +152,7 @@ RUN ./authtokengen.expect `cat email-password.secret | tr '\n' ' '`
 RUN rm -f authtokengen.expect email-password.secret
 RUN ./xsetup -a XilinxEULA,3rdPartyEULA --batch Install --config install_config.txt
 WORKDIR /home/vivado
+RUN rm -rf .Xilinx/wi_authentication_key .Xilinx/xinstall
 RUN rm -rf ./${VIVADO_BIN_FILE} web-installer
 
 # If the above fails for a newer version of Xilinx, because of new configuration
@@ -203,17 +204,6 @@ RUN adduser --disabled-password --gecos '' vivado-docker-1003
 # https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
 RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1@' /opt/Xilinx/${VIVADO_VERSION}/Vivado/bin/vivado
 
-RUN adduser --disabled-password --gecos '' vivado-docker-1004
-RUN adduser --disabled-password --gecos '' vivado-docker-1005
-RUN adduser --disabled-password --gecos '' vivado-docker-1006
-RUN adduser --disabled-password --gecos '' vivado-docker-1007
-RUN adduser --disabled-password --gecos '' vivado-docker-1008
-RUN adduser --disabled-password --gecos '' vivado-docker-1009
-RUN adduser --disabled-password --gecos '' vivado-docker-1010
-RUN adduser --disabled-password --gecos '' vivado-docker-1011
-RUN adduser --disabled-password --gecos '' vivado-docker-1012
-RUN adduser --disabled-password --gecos '' vivado-docker-1013
-
 RUN apt-get install -y \
   iputils-ping iproute2
 
@@ -224,26 +214,6 @@ RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx
 USER vivado-docker-1002
 RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
 USER vivado-docker-1003
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1004
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1005
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1006
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1007
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1008
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1009
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1010
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1011
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1012
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1013
 RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
 
 WORKDIR /project-on-host/
@@ -267,13 +237,19 @@ keyboard-configuration
 RUN mkdir -p /run/user/1000/xpra
 RUN chown vivado:vivado /run/user/1000/xpra
 
+# Use /etc/apt/trusted.gpg.d/ instead of /usr/share/keyrings/
+
 # xpra
-RUN wget -O "/usr/share/keyrings/xpra.asc" https://xpra.org/xpra.asc
+RUN wget -O "/etc/apt/trusted.gpg.d/xpra.asc" https://xpra.org/xpra.asc
 # xpra LTS v5.x (remove "-lts" suffix to get latest non LTS release)
-RUN cd /etc/apt/sources.list.d && wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra-lts.sources
+RUN cd /etc/apt/sources.list.d && \
+wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra-lts.sources && \
+sed -i 's@/usr/share/keyrings/@/etc/apt/trusted.gpg.d/@' /etc/apt/sources.list.d/xpra-lts.sources
+RUN cat /etc/apt/sources.list.d/xpra-lts.sources
 RUN DEBIAN_FRONTEND=noninteractive apt update
+# exclude the audio stuff
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-xpra-x11 \
+xpra xpra-codecs-extras xpra-html5 xpra-x11 \
 gnome-terminal
 
 # SpinalHDL
@@ -295,17 +271,32 @@ RUN DEBIAN_FRONTEND=noninteractive \
 apt-get install -y -qq \
 sbt
 
-# @TODO move up to just after Vivado installation
-RUN rm -rf /home/vivado/.Xilinx/wi_authentication_key /home/vivado/.Xilinx/xinstall
-
 RUN DEBIAN_FRONTEND=noninteractive \
 apt-get install -y -qq \
 python3-yaml
 
+# https://github.com/Xpra-org/xpra-html5/issues/205
+# when resizing client display size, the mouse gets offset
+# this patch in xpra was referred to, but seems not in LTS yet. 
+# puts position:fixed; under #float-menu in /usr/share/xpra/www/css/menu-skin.css
+RUN cd /usr/share/xpra/www/ && \
+wget -O- https://github.com/Xpra-org/xpra-html5/commit/3fe1d6b6e848153c006c8f98424aa7ccdc5436c5.patch | \
+patch -p2
+
+# @TODO move up to xpra; for the menu to be interpreted by xpra we need this dependency
+#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+#python3-xdg
+
 USER vivado
 WORKDIR /project-on-host/
 
-#COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-#ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# @TODO menu does not get picked up correctly (no error messages)
+# However, with this entry we get a default menu where we can re-open a Terminal window
+RUN mkdir /home/vivado/.config/menus && \
+echo '!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN" "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd"><Menu></Menu>' \
+>/home/vivado/.config/applications.menu
+
+COPY entrypoint-xpra-server.sh /home/vivado/xpra.sh
+ENTRYPOINT ["/home/vivado/xpra.sh"]
 #CMD ["/bin/bash", "-l"]
 

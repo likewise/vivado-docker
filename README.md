@@ -17,6 +17,11 @@ installer .tar or .bin file (See Dockerfile and Makefile).
 
 Sometimes `--bind 127.0.0.1` is needed in addition to this.
 
+### Ubuntu 20 or Mint 21
+
+This branch is tested on a Debian 12 host with podman 4.3.1. Previous work on
+Mint 21 (Ubuntu 20 based).
+
 ## Build instructions
 
 Run `make build` to create the container image, however:
