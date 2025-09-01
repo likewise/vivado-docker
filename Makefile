@@ -1,4 +1,4 @@
-VER=4.1.2
+VER=4.1.3
 
 # Branch 4.1
 # Podman
@@ -178,14 +178,12 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	# Launch the container
 	docker run -it --rm \
+	--log-level=debug \
 	--name vivado-$(USER) \
 	--cap-add=NET_ADMIN \
 	--net=host \
 	--user `id -u`:`id -g` \
 	$${PODMAN_EXTRA_ARGS} \
-	-e HOST_USER_NAME=`id -nu $${USER}` \
-	-e HOST_USER_ID=`id -u $${USER}` \
-	-e HOST_GROUP_ID=`id -g $${USER}` \
 	-e DISPLAY=:$${DISPLAY_NUMBER} \
 	-e XAUTHORITY=/tmp/.Xauthority \
 	-v $${X11TMPDIR}/socket:/tmp/.X11-unix \
@@ -208,7 +206,9 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	--security-opt label=disable \
 	--expose 14500 \
 	\
-	vivado:$(VER) || echo ERROR $$?
+	vivado:$(VER) \
+	|| echo ERROR $$?
+    #2> /tmp/podman-debug.log
 
 	rm -rf $${X11TMPDIR}
 	kill -9 $${PIDOF_SOCAT}
