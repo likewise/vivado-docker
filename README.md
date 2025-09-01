@@ -1,4 +1,4 @@
-# vivado-docker
+ vivado-docker
 
 Vivado installed into a Docker image
 
@@ -24,7 +24,6 @@ driver = "overlay"
 mount_program = "/usr/bin/fuse-overlayfs"
 
 If the mount_program is commented out, the kernel overlayfs is used.
-
 
 Run `python3 -m http.server` in the folder with the Vivado
 installer .tar or .bin file (See Dockerfile and Makefile),
