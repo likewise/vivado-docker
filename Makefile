@@ -160,6 +160,14 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-e DISPLAY=localhost:$${DISPLAY_NUMBER} \
 #
 #
+#  --user is often redundant if you already used --userns=keep-id,
+# since in that case your host UID will usually be mapped 1:1.
+
+#	-e HOST_USER_NAME=`id -nu $${USER}` \
+#	-e HOST_USER_ID=`id -u $${USER}` \
+#	-e HOST_GROUP_ID=`id -g $${USER}` \
+
+
 	echo CONTAINER_HOSTNAME=$${CONTAINER_HOSTNAME}
 
 	# Launch the container
