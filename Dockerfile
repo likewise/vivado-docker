@@ -145,9 +145,9 @@ RUN chmod +x ${VIVADO_BIN_FILE}
 RUN ./${VIVADO_BIN_FILE} --keep --noexec --target ./web-installer
 
 WORKDIR /home/vivado/web-installer
-COPY authtokengen.expect .
-COPY email-password.secret .
-COPY install_config.txt .
+COPY --chown=vivado authtokengen.expect .
+COPY --chown=vivado email-password.secret .
+COPY --chown=vivado install_config.txt .
 RUN ./authtokengen.expect `cat email-password.secret | tr '\n' ' '`
 RUN rm -f authtokengen.expect email-password.secret
 RUN ./xsetup -a XilinxEULA,3rdPartyEULA --batch Install --config install_config.txt
