@@ -3,3 +3,4 @@
 wireguard/*.conf
 vivado*.jou
 vivado*.log
+XILINXD_LICENSE_FILE
