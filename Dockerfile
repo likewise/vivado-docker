@@ -300,7 +300,7 @@ RUN mkdir /home/vivado/.config/menus && \
 echo '!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN" "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd"><Menu></Menu>' \
 >/home/vivado/.config/menus/applications.menu
 
-COPY entrypoint-xpra-server.sh /home/vivado/xpra.sh
+COPY --chown=vivado entrypoint-xpra-server.sh /home/vivado/xpra.sh
 ENTRYPOINT ["/home/vivado/xpra.sh"]
 #CMD ["/bin/bash", "-l"]
 
