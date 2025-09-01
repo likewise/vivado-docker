@@ -11,7 +11,10 @@ VER=4.1.2
 # make remote  = run the container image on the host you are logged in to via SSH.
 mkfile_path := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
+# run all target command in the same shell instance
 .ONESHELL:
+# use the bash shell
+SHELL=/bin/bash
 
 # --cgroup-manager cgroupfs to work-around Debian 12 problem of
 # --runtime=/usr/bin/runc with apt-get install runc
