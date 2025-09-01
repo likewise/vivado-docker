@@ -275,9 +275,11 @@ RUN DEBIAN_FRONTEND=noninteractive \
 apt-get install -y -qq \
 sbt
 
+# for the menu to be interpreted by xpra we need python3-xdg
 RUN DEBIAN_FRONTEND=noninteractive \
 apt-get install -y -qq \
-python3-yaml
+python3-yaml \
+python3-xdg
 
 # https://github.com/Xpra-org/xpra-html5/issues/205
 # when resizing client display size, the mouse gets offset
@@ -287,9 +289,6 @@ RUN cd /usr/share/xpra/www/ && \
 wget -O- https://github.com/Xpra-org/xpra-html5/commit/3fe1d6b6e848153c006c8f98424aa7ccdc5436c5.patch | \
 patch -p2
 
-# @TODO move up to xpra; for the menu to be interpreted by xpra we need this dependency
-#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-#python3-xdg
 
 USER vivado
 WORKDIR /project-on-host/
