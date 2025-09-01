@@ -141,6 +141,10 @@ COPY --chown=vivado petalinux-accept-eula.sh /home/vivado
 RUN echo "Downloading and extracting ${VIVADO_BIN_FILE} from ${VIVADO_TAR_HOST}" && \
   wget ${VIVADO_TAR_HOST}/${VIVADO_BIN_FILE}
 
+# TODO: The webinstaller is going one directory level up to ../Downloads writing some logs.
+# mkdir -p /opt/Xilinx/Downloads && chown -R vidado:vivado /opt/Xilinx
+# 
+
 RUN chmod +x ${VIVADO_BIN_FILE}
 RUN ./${VIVADO_BIN_FILE} --keep --noexec --target ./web-installer
 
@@ -294,7 +298,7 @@ WORKDIR /project-on-host/
 # However, with this entry we get a default menu where we can re-open a Terminal window
 RUN mkdir /home/vivado/.config/menus && \
 echo '!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN" "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd"><Menu></Menu>' \
->/home/vivado/.config/applications.menu
+>/home/vivado/.config/menus/applications.menu
 
 COPY entrypoint-xpra-server.sh /home/vivado/xpra.sh
 ENTRYPOINT ["/home/vivado/xpra.sh"]
