@@ -4,18 +4,47 @@ Vivado installed into a Docker image
 
 ## Build prerequisites
 
-sudo apt-get install xauth acl
+On the guest host system the following is required:
 
-Docker or Podman.
+```sudo apt-get install xauth acl podman-docker```
 
-The Dockerfile will try to download the Vivado installer from a (local)
-web server. So run a HTTP server that hosts the Vivado stand-alone (full)
-installer or the Vivado web-based installer.
+The current Makefile is for podman rootless,
+and was tested with:
 
-For example; run `python3 -m http.server` in the folder with the Vivado
-installer .tar or .bin file (See Dockerfile and Makefile).
+~/.config/containers/containers.conf:
+[engine]
+cgroup_manager = "cgroupfs"
+
+.config/containers/storage.conf:
+[storage]
+driver = "overlay"
+#rootless_storage_path = "/local/$USER/containers/storage"
+
+[storage.options.overlay]
+mount_program = "/usr/bin/fuse-overlayfs"
+
+If the mount_program is commented out, the kernel overlayfs is used.
+
+
+Run `python3 -m http.server` in the folder with the Vivado
+installer .tar or .bin file (See Dockerfile and Makefile),
+which you must pre-download on the guest host.
 
 Sometimes `--bind 127.0.0.1` is needed in addition to this.
+
+```make build```
+
+The build takes long; hours. There are a few points where no progress
+is reported, such as just after Vivado was installed and you see
+`INFO  - Tool installation completed.To run the tool successfully,`
+
+
+### Lingering
+
+loginctl show-user "$USER" | grep Linger
+Linger=no
+
+means your user systemd only exists while you’re logged in on a TTY/GUI.
 
 ### Ubuntu 20 or Mint 21
 
