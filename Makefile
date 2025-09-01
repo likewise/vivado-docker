@@ -90,12 +90,17 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	echo "DISPLAY_NUMBER=$$DISPLAY_NUMBER on guest host port $$XPORT"
 
 	xauth list
+	echo "Filtered on host $$(hostname) and DISPLAY_NUMBER $${DISPLAY_NUMBER}:"
+	echo "xauth list | grep -e ^$$(hostname):.*$${DISPLAY_NUMBER}"
+	xauth list | grep -e "^$$(hostname).*:$${DISPLAY_NUMBER}"
+	echo "---"
 
 	# Extract authentication cookie for the guest host DISPLAY
 	#export AUTH_COOKIE=$$(xauth list | grep -e "^$$(hostname)/unix:$${DISPLAY_NUMBER} " | awk '{print $$3}')
 	#echo "AUTH_COOKIE=$$AUTH_COOKIE (for unix:$${DISPLAY_NUMBER})"
 	#echo grep -e "^$$(hostname):$${DISPLAY_NUMBER} "
-	export AUTH_COOKIE=$$(xauth list | grep -e "^$$(hostname):$${DISPLAY_NUMBER} " | head -n1 | awk '{print $$3}')
+	# .* to also capture hostname/unix:10 besides hostname:10
+	export AUTH_COOKIE=$$(xauth list | grep -e "^$$(hostname).*:$${DISPLAY_NUMBER} " | head -n1 | awk '{print $$3}')
 	echo "AUTH_COOKIE=$$AUTH_COOKIE (for ip:$${DISPLAY_NUMBER})"
 
 	: > "$$X11TMPDIR/Xauthority"
