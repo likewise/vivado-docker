@@ -42,6 +42,9 @@ assert-gitconfig:
 # --user `id -u`:`id -g` is to match the container user to the host user, so if
 # files are written to the host directory, they have the correct ownership.
 run: #guard-DISPLAY guard-USER assert-gitconfig
+
+	mkdir -p ~/.vscode-server
+
 	docker --version | grep podman
 	if [ $$? -eq 0 ]; then
 		echo "Detected Podman"
@@ -68,12 +71,15 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 	--device=/dev/bus \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
 	-v $$PWD:/project-on-host \
+	-v $$HOME/.vscode-server:/home/vivado/.vscode-server \
 	-w /project-on-host \
 	vivado:$(VER)
 
 #	-v $$PWD/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 
 remote: guard-DISPLAY guard-USER assert-gitconfig
+
+	mkdir -p ~/.vscode-server
 
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
@@ -189,6 +195,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	--add-host $${CONTAINER_HOSTNAME}:127.0.0.1 \
 	\
 	-w /project-on-host \
+	-v $$HOME/.vscode-server:/home/vivado/.vscode-server \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
 	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
