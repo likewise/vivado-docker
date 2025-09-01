@@ -201,8 +201,6 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v $(mkfile_path)/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
 	\
 	--group-add keep-groups \
-	--device-cgroup-rule 'c 188:* rmw' \
-	--device-cgroup-rule 'c 189:* rmw' \
 	--security-opt label=disable \
 	--expose 14500 \
 	\
@@ -228,6 +226,8 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 
 #	-v ~/../shared/.Xilinx/100G.lic:/home/vivado-docker-`id -u $${USER}`/.Xilinx/Xilinx.lic:ro \
+#	--device-cgroup-rule 'c 188:* rmw' \
+#	--device-cgroup-rule 'c 189:* rmw' \
 
 
 #	-v /dev/bus/usb:/dev/bus/usb \
