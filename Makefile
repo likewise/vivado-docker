@@ -182,7 +182,6 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	--name vivado-$(USER) \
 	--cap-add=NET_ADMIN \
 	--net=host \
-	--user `id -u`:`id -g` \
 	$${PODMAN_EXTRA_ARGS} \
 	-e DISPLAY=:$${DISPLAY_NUMBER} \
 	-e XAUTHORITY=/tmp/.Xauthority \
