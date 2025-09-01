@@ -45,6 +45,7 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 	docker --version | grep podman
 	if [ $$? -eq 0 ]; then
 		echo "Detected Podman"
+# --userns=keep-id creates a map where your host user's UID/GID is identical to the container's user ID/GID. 
 		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW,NET_ADMIN"
 	else
 		echo "Assuming Docker"
