@@ -153,6 +153,7 @@ COPY --chown=vivado authtokengen.expect .
 COPY --chown=vivado email-password.secret .
 COPY --chown=vivado install_config.txt .
 RUN ./authtokengen.expect `cat email-password.secret | tr '\n' ' '`
+RUN ls -altr
 RUN rm -f authtokengen.expect email-password.secret
 RUN ./xsetup -a XilinxEULA,3rdPartyEULA --batch Install --config install_config.txt
 WORKDIR /home/vivado
@@ -199,10 +200,6 @@ WORKDIR /root
 # use double quotes so that the variables get expanded during docker build
 RUN echo "source /opt/Xilinx/${VIVADO_VERSION}/Vivado/settings64.sh" >> /etc/bash.bashrc
 
-RUN adduser --disabled-password --gecos '' vivado-docker-1001
-RUN adduser --disabled-password --gecos '' vivado-docker-1002
-RUN adduser --disabled-password --gecos '' vivado-docker-1003
-
 # Workaround for https://support.xilinx.com/s/article/000034450
 # https://adaptivesupport.amd.com/s/article/000034450?language=en_US
 # https://support.xilinx.com/s/question/0D54U00005Sgst2SAB/failed-batch-mode-execution-in-linux-docker-running-under-windows-host?language=en_US&t=1670020489603
@@ -210,15 +207,6 @@ RUN sed -i 's@export XILINX_VIVADO@export XILINX_VIVADO\nexport LD_PRELOAD=/lib/
 
 RUN apt-get install -y \
   iputils-ping iproute2
-
-# Not the best solution, but symlink to the 100G license.
-# @TODO run this as a for loop as root, but make sure ownership is on users
-USER vivado-docker-1001
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1002
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
-USER vivado-docker-1003
-RUN mkdir -p ~/.Xilinx; ln -snf /home/vivado/.Xilinx/Xilinx.lic ~/.Xilinx/Xilinx.lic
 
 WORKDIR /project-on-host/
 
@@ -288,7 +276,6 @@ python3-xdg
 RUN cd /usr/share/xpra/www/ && \
 wget -O- https://github.com/Xpra-org/xpra-html5/commit/3fe1d6b6e848153c006c8f98424aa7ccdc5436c5.patch | \
 patch -p2
-
 
 USER vivado
 WORKDIR /project-on-host/
