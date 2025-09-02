@@ -199,7 +199,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
 	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
 	-v $(mkfile_path)/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
-	-e XILINXD_LICENSE_FILE=$$(cat XILINXD_LICENSE_FILE || echo "") \
+	-e XILINXD_LICENSE_FILE=$$(cat $(mkfile_path)/XILINXD_LICENSE_FILE || cat XILINXD_LICENSE_FILE || echo $${XILINXD_LICENSE_FILE:-""}) \
 	\
 	--group-add keep-groups \
 	--security-opt label=disable \
