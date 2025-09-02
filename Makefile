@@ -146,7 +146,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	docker --version | grep podman
 	if [ $$? -eq 0 ]; then
 		echo "Detected Podman"
-		export PODMAN_EXTRA_ARGS="--userns=keep-id --cap-add=NET_RAW"
+		export PODMAN_EXTRA_ARGS="--userns=keep-id:uid=1000,gid=1000 --cap-add=NET_RAW"
 	else
 		echo "Assuming Docker"
 		export PODMAN_EXTRA_ARGS=
