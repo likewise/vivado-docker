@@ -1,7 +1,8 @@
 #!/bin/sh
 XAUTHORITY= XDG_RUNTIME_DIR=/run/user/$(id -u) xpra start \
 --bind-tcp=0.0.0.0:14500 \
---start-child=gnome-terminal --start-child=vivado \
+--start=gnome-terminal \
+--start=vivado \
 --terminate-children=yes --exit-with-children=no \
 --audio=no --printing=no --webcam=no --no-tray --mdns=no \
 --enable-pings \
