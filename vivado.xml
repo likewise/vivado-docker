@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?><preferences VERSION="10">
+    <general>
+        <CODE_EDITOR_FONT font_name="Monospaced" font_size="12"/>
+        <RENDERING_OPTIONS_ANTI_ALIASING value="true"/>
+        <RENDERING_OPTIONS_USER_OVERRIDE value="true"/>
+        <SCALING_TYPE value="3"/>
+    </general>
+    <EMOTIONAL_VIEWS/>
+</preferences>

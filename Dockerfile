@@ -300,6 +300,8 @@ echo '<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN" "http://www.freed
 >/home/vivado/.config/menus/applications.menu
 
 COPY --chown=vivado entrypoint-xpra-server.sh /home/vivado/xpra.sh
+COPY --chown=vivado vivado.xml /home/vivado/.Xilinx/Vivado/2025.1/
+
 ENTRYPOINT ["/home/vivado/xpra.sh"]
 #CMD ["/bin/bash", "-l"]
 
