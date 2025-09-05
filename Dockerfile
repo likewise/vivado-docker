@@ -235,9 +235,9 @@ RUN chown vivado:vivado /run/user/1000/xpra
 RUN wget -O "/etc/apt/trusted.gpg.d/xpra.asc" https://xpra.org/xpra.asc
 # xpra LTS v5.x (remove "-lts" suffix to get latest non LTS release)
 RUN cd /etc/apt/sources.list.d && \
-wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra-lts.sources && \
-sed -i 's@/usr/share/keyrings/@/etc/apt/trusted.gpg.d/@' /etc/apt/sources.list.d/xpra-lts.sources
-RUN cat /etc/apt/sources.list.d/xpra-lts.sources
+wget https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra.sources && \
+sed -i 's@/usr/share/keyrings/@/etc/apt/trusted.gpg.d/@' /etc/apt/sources.list.d/xpra.sources
+RUN cat /etc/apt/sources.list.d/xpra.sources
 RUN DEBIAN_FRONTEND=noninteractive apt update
 # exclude the audio stuff
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \

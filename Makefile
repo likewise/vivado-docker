@@ -1,4 +1,4 @@
-VER=4.1.3
+VER=4.1.4
 
 # Branch 4.1
 # Podman
@@ -179,6 +179,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	# Launch the container
 	docker run -it --rm \
+	--entrypoint /bin/bash \
 	--log-level=debug \
 	--name vivado-$(USER) \
 	--cap-add=NET_ADMIN \
