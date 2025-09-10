@@ -114,7 +114,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	# Add a specific entry for what the container will request: vivado-container/unix:0
 	xauth -f "$$X11TMPDIR/Xauthority" add "$$CONTAINER_HOSTNAME/unix:$$CONTAINER_DISPLAY" MIT-MAGIC-COOKIE-1 "$$AUTH_COOKIE"
 	xauth nlist "$$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f "$$X11TMPDIR/Xauthority" nmerge -
-	
+
 	chmod 0644 "$$X11TMPDIR/Xauthority"
 	echo "$${X11TMPDIR}/Xauthority:"
 	xauth -f $${X11TMPDIR}/Xauthority list
@@ -130,6 +130,10 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	chmod ugo+rwx -R $${X11TMPDIR}
 	# not sure why this is ALSO needed
 	/usr/bin/setfacl -R -m user:1000:rwx $${X11TMPDIR}
+
+
+# @TODO Multiproject? We would like to mount all subdirectories in the present working directory?
+# find . -maxdepth 1 -type d | xargs -I{} basename {} | grep -v '^\.$' | sed 's@\(.*\)@-v \1:\1@' | tr '\n' ' '
 
 
 #	-v ~/../shared/.Xilinx/100G.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
@@ -194,11 +198,9 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	--add-host $${CONTAINER_HOSTNAME}:127.0.0.1 \
 	\
 	-w /project-on-host \
-	-v $$HOME/.vscode-server:/home/vivado/.vscode-server \
+	-v ~/.vscode-server:/home/vivado/.vscode-server \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
-	-v ~/.ssh:/home/vivado-docker-`id -u $${USER}`/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
-	-v ~/.gitconfig:/home/vivado-docker-`id -u $${USER}`/.gitconfig:ro \
 	-v $(mkfile_path)/Vivado_init.tcl:/home/vivado/.Xilinx/Vivado/Vivado_init.tcl:ro \
 	-e XILINXD_LICENSE_FILE="$$(cat $(mkfile_path)/XILINXD_LICENSE_FILE):$$(cat XILINXD_LICENSE_FILE):$$(echo $${XILINXD_LICENSE_FILE:-''})" \
 	\
