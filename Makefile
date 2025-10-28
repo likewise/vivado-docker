@@ -39,6 +39,8 @@ assert-gitconfig:
 	(git config --global --list | grep -qe user.email) || \
 	(echo 'Please configure GIT first:\ngit config --global user.email "MY_NAME@example.com"'; false)
 
+# run target is UNMAINTAINED, use remote, see below
+
 # --user `id -u`:`id -g` is to match the container user to the host user, so if
 # files are written to the host directory, they have the correct ownership.
 run: #guard-DISPLAY guard-USER assert-gitconfig
@@ -77,6 +79,7 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 
 #	-v $$PWD/Xilinx.lic:/home/vivado/.Xilinx/Xilinx.lic:ro \
 
+# same as run, b
 remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	mkdir -p ~/.vscode-server
@@ -183,6 +186,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	# Launch the container
 	docker run -it --rm \
+	--memory=24g \
 	--entrypoint /bin/bash \
 	--log-level=debug \
 	--name vivado-$(USER) \
@@ -198,6 +202,7 @@ remote: guard-DISPLAY guard-USER assert-gitconfig
 	--add-host $${CONTAINER_HOSTNAME}:127.0.0.1 \
 	\
 	-w /project-on-host \
+	-v ~/sdk:/opt/sdk \
 	-v ~/.vscode-server:/home/vivado/.vscode-server \
 	-v ~/.ssh:/home/vivado/.ssh:ro \
 	-v ~/.gitconfig:/home/vivado/.gitconfig:ro \
