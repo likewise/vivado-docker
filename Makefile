@@ -22,6 +22,7 @@ SHELL=/bin/bash
 # sd-bus call: Interactive authentication required.: Permission denied
 build:
 	docker build --build-arg=TERM="linux" --network=host -t vivado:$(VER) .
+# --log-level=debug
 
 # assures variable % is set (used for USER and DISPLAY)
 guard-%:
@@ -83,6 +84,7 @@ run: #guard-DISPLAY guard-USER assert-gitconfig
 remote: guard-DISPLAY guard-USER assert-gitconfig
 
 	mkdir -p ~/.vscode-server
+	mkdir -p ~/sdk
 
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"

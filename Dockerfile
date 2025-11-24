@@ -273,9 +273,9 @@ python3-xdg
 # when resizing client display size, the mouse gets offset
 # this patch in xpra was referred to, but seems not in LTS yet. 
 # puts position:fixed; under #float-menu in /usr/share/xpra/www/css/menu-skin.css
-RUN cd /usr/share/xpra/www/ && \
-wget -O- https://github.com/Xpra-org/xpra-html5/commit/3fe1d6b6e848153c006c8f98424aa7ccdc5436c5.patch | \
-patch -p2
+#RUN cd /usr/share/xpra/www/ && \
+#$wget -O- https://github.com/Xpra-org/xpra-html5/commit/3fe1d6b6e848153c006c8f98424aa7ccdc5436c5.patch | \
+#patch -p2
 
 USER vivado
 WORKDIR /project-on-host/
